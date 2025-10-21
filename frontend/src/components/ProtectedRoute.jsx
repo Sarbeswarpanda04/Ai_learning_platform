@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../utils/store';
+import api from '../utils/api';
 
 const ProtectedRoute = ({ children, roles = [] }) => {
   const { isAuthenticated, user, setAuth } = useAuthStore();
@@ -12,24 +13,44 @@ const ProtectedRoute = ({ children, roles = [] }) => {
       const accessToken = localStorage.getItem('accessToken');
       const storedAuth = localStorage.getItem('auth-storage');
       
-      if (accessToken && storedAuth && !isAuthenticated) {
+      if (accessToken && !isAuthenticated) {
         try {
-          const authData = JSON.parse(storedAuth);
-          if (authData.state && authData.state.user) {
-            // Rehydrate the auth store manually
-            setAuth(
-              authData.state.user,
-              authData.state.profile,
-              authData.state.accessToken || accessToken,
-              authData.state.refreshToken || localStorage.getItem('refreshToken')
-            );
+          // Try to rehydrate from persisted auth-storage first
+          if (storedAuth) {
+            const authData = JSON.parse(storedAuth);
+            if (authData.state && authData.state.user) {
+              setAuth(
+                authData.state.user,
+                authData.state.profile,
+                authData.state.accessToken || accessToken,
+                authData.state.refreshToken || localStorage.getItem('refreshToken')
+              );
+              console.log('ProtectedRoute - rehydrated from auth-storage');
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          // If auth-storage didn't contain user, call backend /me to rehydrate
+          try {
+            const res = await api.get('/api/auth/me');
+            if (res.data && res.data.data && res.data.data.user) {
+              const user = res.data.data.user;
+              const profile = res.data.data.profile || null;
+              setAuth(user, profile, accessToken, localStorage.getItem('refreshToken'));
+              console.log('ProtectedRoute - rehydrated from /api/auth/me');
+              setIsLoading(false);
+              return;
+            }
+          } catch (meErr) {
+            console.log('ProtectedRoute - /api/auth/me failed:', meErr?.response?.status || meErr.message);
           }
         } catch (error) {
           console.error('Failed to rehydrate auth state:', error);
         }
       }
       
-      // Wait a bit for state to update
+      // Wait a bit for state to update (fallback)
       setTimeout(() => {
         console.log('ProtectedRoute - post-check:', {
           accessToken: localStorage.getItem('accessToken') ? 'present' : 'missing',
