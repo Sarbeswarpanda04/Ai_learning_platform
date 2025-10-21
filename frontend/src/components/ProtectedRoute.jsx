@@ -8,21 +8,13 @@ const ProtectedRoute = ({ children, roles = [] }) => {
 
   useEffect(() => {
     // Check if tokens exist in localStorage but state hasn't rehydrated yet
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const accessToken = localStorage.getItem('accessToken');
       const storedAuth = localStorage.getItem('auth-storage');
-      
-      console.log('ProtectedRoute - checkAuth:', {
-        hasAccessToken: !!accessToken,
-        hasStoredAuth: !!storedAuth,
-        isAuthenticated,
-        userRole: user?.role
-      });
       
       if (accessToken && storedAuth && !isAuthenticated) {
         try {
           const authData = JSON.parse(storedAuth);
-          console.log('ProtectedRoute - Attempting manual rehydration:', authData.state?.user?.name);
           if (authData.state && authData.state.user) {
             // Rehydrate the auth store manually
             setAuth(
@@ -36,43 +28,38 @@ const ProtectedRoute = ({ children, roles = [] }) => {
           console.error('Failed to rehydrate auth state:', error);
         }
       }
-      setIsLoading(false);
+      
+      // Wait a bit for state to update
+      setTimeout(() => setIsLoading(false), 100);
     };
 
     checkAuth();
-  }, [isAuthenticated, setAuth]);
+  }, []);
 
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  // Check authentication
+  // Check authentication - be more lenient
   const accessToken = localStorage.getItem('accessToken');
   
-  console.log('ProtectedRoute - Final auth check:', {
-    isAuthenticated,
-    hasAccessToken: !!accessToken,
-    userRole: user?.role,
-    requiredRoles: roles
-  });
-  
-  if (!isAuthenticated && !accessToken) {
-    console.log('ProtectedRoute - Redirecting to login (no auth)');
+  if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
 
   // Check role authorization if roles are specified
-  if (roles.length > 0 && !roles.includes(user?.role)) {
-    console.log('ProtectedRoute - Redirecting to dashboard (wrong role)');
+  if (roles.length > 0 && user && !roles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  console.log('ProtectedRoute - Access granted');
   return children;
 };
 

@@ -58,21 +58,19 @@ const Dashboard = () => {
   // Check authentication
   useEffect(() => {
     const accessToken = localStorage.getItem('accessToken');
+    const storedUser = localStorage.getItem('user');
     
-    if (!isAuthenticated && !accessToken) {
+    // If no token and not authenticated, redirect
+    if (!accessToken && !isAuthenticated) {
       console.log('Not authenticated, redirecting to login');
       toast.error('Please login to access dashboard');
       navigate('/login');
       return;
     }
     
-    // Small delay to ensure tokens are properly set
-    const timer = setTimeout(() => {
-      fetchDashboardData();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, navigate]);
+    // Fetch dashboard data
+    fetchDashboardData();
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
