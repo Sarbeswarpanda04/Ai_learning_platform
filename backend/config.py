@@ -21,6 +21,19 @@ class Config:
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     
+    # Database Connection Pool Settings (for PostgreSQL)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,                    # Number of connections to keep open
+        'pool_recycle': 300,                # Recycle connections after 5 minutes
+        'pool_pre_ping': True,              # Verify connections before using them
+        'max_overflow': 20,                 # Max connections beyond pool_size
+        'pool_timeout': 30,                 # Timeout for getting connection from pool
+        'connect_args': {
+            'connect_timeout': 10,          # Connection timeout
+            'options': '-c statement_timeout=30000'  # Query timeout (30 seconds)
+        }
+    }
+    
     # CORS Configuration
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5174,http://192.168.29.166:5173,http://192.168.29.166:5174,https://ai-learning-platform-three.vercel.app').split(',')
     

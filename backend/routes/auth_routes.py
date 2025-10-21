@@ -4,10 +4,12 @@ Authentication routes for user signup, login, and OAuth
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from datetime import datetime
+from sqlalchemy.exc import OperationalError, DBAPIError
 from database import db
 from models.user import User, StudentProfile
 from utils.security import validate_email, sanitize_input, success_response, error_response
 from utils.email_service import generate_otp, send_otp_email, store_otp, verify_otp, resend_otp
+from utils.db_utils import retry_on_db_error
 import os
 
 # Google OAuth is optional
@@ -74,8 +76,13 @@ def signup():
         if role not in ['student', 'teacher', 'admin']:
             return error_response('Invalid role. Must be student, teacher, or admin', 400)
         
-        # Check if user already exists
-        if User.query.filter_by(email=email).first():
+        # Check if user already exists with retry logic
+        @retry_on_db_error(max_retries=3)
+        def check_existing_user():
+            return User.query.filter_by(email=email).first()
+        
+        existing_user = check_existing_user()
+        if existing_user:
             return error_response('Email already registered', 409)
         
         # Validate password strength
@@ -133,32 +140,37 @@ def verify_otp_endpoint():
         
         reg_data = pending_registrations[email]
         
-        # Create new user
-        user = User(
-            name=reg_data['name'],
-            email=reg_data['email'],
-            role=reg_data['role'],
-            is_active=True,
-            email_verified=True
-        )
-        user.set_password(reg_data['password'])
-        
-        db.session.add(user)
-        db.session.flush()  # Get user ID
-        
-        # Create student profile if role is student
-        if reg_data['role'] == 'student':
-            profile_data = reg_data.get('profile', {})
-            profile = StudentProfile(
-                user_id=user.id,
-                branch=profile_data.get('branch'),
-                semester=profile_data.get('semester'),
-                baseline_score=profile_data.get('baseline_score', 0),
-                preferences=profile_data.get('preferences', {})
+        # Create new user with retry logic
+        @retry_on_db_error(max_retries=3)
+        def create_user_account():
+            user = User(
+                name=reg_data['name'],
+                email=reg_data['email'],
+                role=reg_data['role'],
+                is_active=True,
+                email_verified=True
             )
-            db.session.add(profile)
+            user.set_password(reg_data['password'])
+            
+            db.session.add(user)
+            db.session.flush()  # Get user ID
+            
+            # Create student profile if role is student
+            if reg_data['role'] == 'student':
+                profile_data = reg_data.get('profile', {})
+                profile = StudentProfile(
+                    user_id=user.id,
+                    branch=profile_data.get('branch'),
+                    semester=profile_data.get('semester'),
+                    baseline_score=profile_data.get('baseline_score', 0),
+                    preferences=profile_data.get('preferences', {})
+                )
+                db.session.add(profile)
+            
+            db.session.commit()
+            return user
         
-        db.session.commit()
+        user = create_user_account()
         
         # Remove from pending registrations
         del pending_registrations[email]
@@ -173,6 +185,9 @@ def verify_otp_endpoint():
             'refresh_token': refresh_token
         }, 'Registration completed successfully!', 201)
         
+    except (OperationalError, DBAPIError) as e:
+        db.session.rollback()
+        return error_response('Database connection error. Please try again in a moment.', 503)
     except Exception as e:
         db.session.rollback()
         return error_response(f'Verification failed: {str(e)}', 500)
