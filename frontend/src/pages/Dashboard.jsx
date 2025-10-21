@@ -38,7 +38,7 @@ import { useAuthStore } from '../utils/store';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,10 +55,24 @@ const Dashboard = () => {
     streak: 0
   });
 
-  // Fetch dashboard data
+  // Check authentication
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    const accessToken = localStorage.getItem('accessToken');
+    
+    if (!isAuthenticated && !accessToken) {
+      console.log('Not authenticated, redirecting to login');
+      toast.error('Please login to access dashboard');
+      navigate('/login');
+      return;
+    }
+    
+    // Small delay to ensure tokens are properly set
+    const timer = setTimeout(() => {
+      fetchDashboardData();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, navigate]);
 
   const fetchDashboardData = async () => {
     try {

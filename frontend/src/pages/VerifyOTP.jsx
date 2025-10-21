@@ -11,10 +11,12 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { useAuthStore } from '../utils/store';
 
 const VerifyOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setAuth } = useAuthStore();
   const email = location.state?.email;
   const name = location.state?.name || 'User';
   const testOtp = location.state?.testOtp;  // OTP from response (testing mode)
@@ -120,14 +122,27 @@ const VerifyOTP = () => {
       if (response.data.success) {
         toast.success('Email verified successfully! 🎉');
         
-        // Store tokens
-        const { access_token, refresh_token } = response.data.data;
+        // Get tokens and user data from response
+        const { access_token, refresh_token, user, profile } = response.data.data;
+        
+        // Store tokens in localStorage
         localStorage.setItem('accessToken', access_token);
         localStorage.setItem('refreshToken', refresh_token);
+        
+        // Update Zustand auth store
+        setAuth(user, profile, access_token, refresh_token);
+        
+        console.log('Auth state updated:', { user: user?.name, role: user?.role });
 
-        // Redirect to dashboard
+        // Redirect to appropriate dashboard based on role
         setTimeout(() => {
-          navigate('/dashboard');
+          if (user?.role === 'teacher') {
+            navigate('/teacher-dashboard');
+          } else if (user?.role === 'admin') {
+            navigate('/admin-dashboard');
+          } else {
+            navigate('/dashboard');
+          }
         }, 1000);
       }
     } catch (error) {
