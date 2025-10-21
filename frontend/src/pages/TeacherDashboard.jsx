@@ -215,6 +215,19 @@ const TeacherDashboard = () => {
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} flex`}>
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <motion.aside
         initial={false}
@@ -222,21 +235,23 @@ const TeacherDashboard = () => {
         variants={sidebarVariants}
         className={`${
           theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        } border-r fixed left-0 top-0 h-screen overflow-hidden z-30 shadow-xl`}
+        } border-r fixed left-0 top-0 h-screen overflow-y-auto overflow-x-hidden z-30 shadow-xl
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        transition-transform duration-300 ease-in-out`}
       >
-        <div className="p-6 flex items-center justify-between">
+        <div className="p-4 lg:p-6 flex items-center justify-between">
           <AnimatePresence mode="wait">
             {sidebarOpen && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-3"
+                className="flex items-center gap-2 lg:gap-3"
               >
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                  <Award className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                  <Award className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
-                <span className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <span className={`text-lg lg:text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                   EduAI
                 </span>
               </motion.div>
@@ -257,17 +272,23 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-8 px-3">
+        <nav className="mt-4 lg:mt-8 px-2 lg:px-3 pb-6">
           {navItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <motion.button
                 key={item.id}
-                whileHover={{ scale: 1.05, x: 5 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl mb-2 transition-all ${
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  // Close sidebar on mobile after selection
+                  if (window.innerWidth < 1024) {
+                    setSidebarOpen(false);
+                  }
+                }}
+                className={`w-full flex items-center gap-3 lg:gap-4 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl mb-2 transition-all ${
                   isActive
                     ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow-lg'
                     : theme === 'dark'
@@ -295,53 +316,63 @@ const TeacherDashboard = () => {
       </motion.aside>
 
       {/* Main Content */}
-      <div className={`flex-1 ${sidebarOpen ? 'ml-[280px]' : 'ml-[80px]'} transition-all duration-300`}>
+      <div className={`flex-1 ${sidebarOpen ? 'lg:ml-[280px]' : 'lg:ml-[80px]'} transition-all duration-300`}>
         {/* Header */}
         <header className={`${
           theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         } border-b sticky top-0 z-20 backdrop-blur-lg bg-opacity-90`}>
-          <div className="px-8 py-4 flex items-center justify-between">
+          <div className="px-4 sm:px-6 lg:px-8 py-3 lg:py-4 flex items-center justify-between gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`lg:hidden p-2 rounded-lg ${
+                theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              } transition-colors`}
+            >
+              <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`} />
+            </button>
+
             {/* Search Bar */}
-            <div className="flex-1 max-w-xl">
+            <div className="flex-1 max-w-md lg:max-w-xl">
               <div className={`relative ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} rounded-xl`}>
-                <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                <Search className={`absolute left-3 lg:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 lg:w-5 lg:h-5 ${
                   theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                 }`} />
                 <input
                   type="text"
-                  placeholder="Search students or courses..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full pl-12 pr-4 py-3 ${
-                    theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'
+                  className={`w-full pl-9 lg:pl-12 pr-3 lg:pr-4 py-2 lg:py-3 text-sm lg:text-base ${
+                    theme === 'dark' ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-900 placeholder-gray-500'
                   } rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                 />
               </div>
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-4 ml-6">
+            <div className="flex items-center gap-2 lg:gap-4">
               {/* Theme Toggle */}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleTheme}
-                className={`p-3 rounded-xl ${
+                className={`p-2 lg:p-3 rounded-xl ${
                   theme === 'dark' ? 'bg-gray-700 text-yellow-400' : 'bg-gray-100 text-gray-700'
                 }`}
               >
-                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {theme === 'dark' ? <Sun className="w-4 h-4 lg:w-5 lg:h-5" /> : <Moon className="w-4 h-4 lg:w-5 lg:h-5" />}
               </motion.button>
 
               {/* Notifications */}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className={`p-3 rounded-xl relative ${
+                className={`p-2 lg:p-3 rounded-xl relative ${
                   theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
                 }`}
               >
-                <Bell className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`} />
+                <Bell className={`w-4 h-4 lg:w-5 lg:h-5 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`} />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
               </motion.button>
 
@@ -351,21 +382,19 @@ const TeacherDashboard = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-2 lg:gap-3 p-1.5 lg:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   <img
                     src={`https://ui-avatars.com/api/?name=${user?.name || 'Teacher'}&background=4F46E5&color=fff`}
                     alt="Profile"
-                    className="w-10 h-10 rounded-full ring-2 ring-indigo-500"
+                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full ring-2 ring-indigo-500"
                   />
-                  {sidebarOpen && (
-                    <div className="text-left">
-                      <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                        {user?.name || 'Mr. Sarbeswar'}
-                      </p>
-                      <p className="text-xs text-gray-500">Teacher</p>
-                    </div>
-                  )}
+                  <div className="text-left hidden md:block">
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      {user?.name || 'Teacher'}
+                    </p>
+                    <p className="text-xs text-gray-500">Teacher</p>
+                  </div>
                 </motion.button>
 
                 {/* Profile Dropdown */}
@@ -410,29 +439,29 @@ const TeacherDashboard = () => {
         </header>
 
         {/* Dashboard Content */}
-        <main className="p-8">
+        <main className="p-4 sm:p-6 lg:p-8">
           {/* Greeting Card */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-8 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white overflow-hidden relative"
+            className="mb-6 lg:mb-8 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white overflow-hidden relative"
           >
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20"></div>
             <div className="relative z-10">
-              <h1 className="text-4xl font-bold mb-2">
-                Welcome back, {user?.name || 'Mr. Sarbeswar'} 👋
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
+                Welcome back, {user?.name || 'Teacher'} 👋
               </h1>
-              <p className="text-lg opacity-90">Here's your overview for today.</p>
+              <p className="text-sm sm:text-base lg:text-lg opacity-90">Here's your overview for today.</p>
             </div>
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-              className="absolute -right-20 -bottom-20 w-64 h-64 bg-white opacity-10 rounded-full"
+              className="absolute -right-20 -bottom-20 w-64 h-64 bg-white opacity-10 rounded-full hidden lg:block"
             />
           </motion.div>
 
           {/* KPI Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
             {kpiCards.map((card, index) => {
               const Icon = card.icon;
               return (
@@ -442,23 +471,23 @@ const TeacherDashboard = () => {
                   initial="hidden"
                   animate="visible"
                   variants={cardVariants}
-                  whileHover={{ scale: 1.05, y: -5 }}
+                  whileHover={{ scale: 1.02 }}
                   className={`${
                     theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-                  } rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer`}
+                  } rounded-xl lg:rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer`}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-3 rounded-xl bg-gradient-to-br ${card.color}`}>
-                      <Icon className="w-6 h-6 text-white" />
+                  <div className="flex items-start justify-between mb-3 lg:mb-4">
+                    <div className={`p-2 lg:p-3 rounded-xl bg-gradient-to-br ${card.color}`}>
+                      <Icon className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
-                    <span className={`text-sm font-semibold ${card.trendUp ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`text-xs lg:text-sm font-semibold ${card.trendUp ? 'text-green-500' : 'text-red-500'}`}>
                       {card.trend}
                     </span>
                   </div>
-                  <h3 className={`text-3xl font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  <h3 className={`text-2xl lg:text-3xl font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     <CountUpAnimation end={card.value} />
                   </h3>
-                  <p className="text-gray-500 text-sm">{card.title}</p>
+                  <p className="text-gray-500 text-xs lg:text-sm">{card.title}</p>
                 </motion.div>
               );
             })}
@@ -466,17 +495,17 @@ const TeacherDashboard = () => {
 
           {/* Content Sections Based on Active Tab */}
           {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
               {/* Recent Activity */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg`}
+                className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl lg:rounded-2xl p-4 lg:p-6 shadow-lg`}
               >
-                <h2 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <h2 className={`text-lg lg:text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                   Recent Activity
                 </h2>
-                <div className="space-y-4">
+                <div className="space-y-3 lg:space-y-4">
                   {[
                     { action: 'New assignment submitted', student: 'Priya Singh', time: '5 min ago', icon: FileText },
                     { action: 'Course completion', student: 'Rajesh Kumar', time: '1 hour ago', icon: Award },
@@ -489,20 +518,20 @@ const TeacherDashboard = () => {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className={`flex items-center gap-4 p-4 rounded-xl ${
+                        className={`flex items-center gap-3 lg:gap-4 p-3 lg:p-4 rounded-xl ${
                           theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
                         } hover:shadow-md transition-shadow`}
                       >
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg">
-                          <Icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg shrink-0">
+                          <Icon className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-600 dark:text-indigo-400" />
                         </div>
-                        <div className="flex-1">
-                          <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-medium text-sm lg:text-base truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                             {activity.action}
                           </p>
-                          <p className="text-sm text-gray-500">{activity.student}</p>
+                          <p className="text-xs lg:text-sm text-gray-500 truncate">{activity.student}</p>
                         </div>
-                        <span className="text-xs text-gray-400">{activity.time}</span>
+                        <span className="text-xs text-gray-400 shrink-0">{activity.time}</span>
                       </motion.div>
                     );
                   })}
@@ -513,12 +542,12 @@ const TeacherDashboard = () => {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg`}
+                className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl lg:rounded-2xl p-4 lg:p-6 shadow-lg`}
               >
-                <h2 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <h2 className={`text-lg lg:text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                   Quick Actions
                 </h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 lg:gap-4">
                   {[
                     { label: 'Create Course', icon: Plus, color: 'from-blue-500 to-cyan-500' },
                     { label: 'Upload Material', icon: Upload, color: 'from-purple-500 to-pink-500' },
@@ -531,10 +560,10 @@ const TeacherDashboard = () => {
                         key={action.label}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className={`p-6 rounded-xl bg-gradient-to-br ${action.color} text-white shadow-lg hover:shadow-xl transition-shadow`}
+                        className={`p-4 lg:p-6 rounded-xl bg-gradient-to-br ${action.color} text-white shadow-lg hover:shadow-xl transition-shadow`}
                       >
-                        <Icon className="w-8 h-8 mb-2" />
-                        <p className="text-sm font-semibold">{action.label}</p>
+                        <Icon className="w-6 h-6 lg:w-8 lg:h-8 mb-2" />
+                        <p className="text-xs lg:text-sm font-semibold">{action.label}</p>
                       </motion.button>
                     );
                   })}
@@ -564,11 +593,11 @@ const TeacherDashboard = () => {
       <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full shadow-2xl flex items-center justify-center z-50"
+        className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full shadow-2xl flex items-center justify-center z-50"
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >
-        <Plus className="w-8 h-8 text-white" />
+        <Plus className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
       </motion.button>
     </div>
   );
@@ -578,21 +607,21 @@ const TeacherDashboard = () => {
 const CoursesSection = ({ courses, theme }) => {
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 lg:mb-6 gap-3">
+        <h2 className={`text-xl lg:text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
           My Courses
         </h2>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-semibold shadow-lg flex items-center gap-2"
+          className="px-4 lg:px-6 py-2.5 lg:py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-semibold shadow-lg flex items-center gap-2 text-sm lg:text-base"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
           Create New Course
         </motion.button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         {Array.isArray(courses) && courses.length > 0 ? (
           courses.map((course, index) => (
             <motion.div
@@ -603,40 +632,40 @@ const CoursesSection = ({ courses, theme }) => {
               whileHover={{ scale: 1.03, y: -5 }}
               className={`${
                 theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-              } rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer`}
+              } rounded-xl lg:rounded-2xl p-4 lg:p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer`}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-xl">
-                  <BookOpen className="w-6 h-6 text-white" />
+              <div className="flex items-start justify-between mb-3 lg:mb-4">
+                <div className="p-2 lg:p-3 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-xl">
+                  <BookOpen className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
-                <div className="flex gap-2">
-                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                    <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                <div className="flex gap-1 lg:gap-2">
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <Eye className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-600 dark:text-gray-400" />
                   </button>
-                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                    <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <Edit className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-600 dark:text-gray-400" />
                   </button>
-                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                    <Trash2 className="w-4 h-4 text-red-500" />
+                  <button className="p-1.5 lg:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <Trash2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-red-500" />
                   </button>
                 </div>
               </div>
 
-              <h3 className={`text-lg font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <h3 className={`text-base lg:text-lg font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 {course.title || 'Untitled Course'}
               </h3>
-              <p className="text-gray-500 text-sm mb-4 line-clamp-2">
+              <p className="text-gray-500 text-xs lg:text-sm mb-3 lg:mb-4 line-clamp-2">
                 {course.description || course.content?.substring(0, 100) || 'No description available'}
               </p>
 
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-500">45 students enrolled</span>
+              <div className="flex items-center gap-2 mb-2 lg:mb-3">
+                <Users className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-400" />
+                <span className="text-xs lg:text-sm text-gray-500">45 students enrolled</span>
               </div>
 
               {/* Progress Bar */}
               <div className="mb-2">
-                <div className="flex justify-between text-sm mb-1">
+                <div className="flex justify-between text-xs lg:text-sm mb-1">
                   <span className="text-gray-500">Course Progress</span>
                   <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     65%
@@ -654,21 +683,21 @@ const CoursesSection = ({ courses, theme }) => {
             </motion.div>
           ))
         ) : (
-          <div className="col-span-full text-center py-12">
-            <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <div className="col-span-full text-center py-8 lg:py-12">
+            <BookOpen className="w-12 h-12 lg:w-16 lg:h-16 text-gray-400 mx-auto mb-3 lg:mb-4" />
+            <h3 className={`text-lg lg:text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
               No courses yet
             </h3>
-            <p className="text-gray-500 mb-4">
+            <p className="text-sm lg:text-base text-gray-500 mb-3 lg:mb-4">
               Start by creating your first course
             </p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => window.location.href = '/teacher/create-lesson'}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition"
+              className="inline-flex items-center gap-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition text-sm lg:text-base"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
               Create Your First Course
             </motion.button>
           </div>
@@ -685,21 +714,21 @@ const StudentsSection = ({ students, theme }) => {
   
   return (
     <div>
-      <h2 className={`text-2xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+      <h2 className={`text-xl lg:text-2xl font-bold mb-4 lg:mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
         Student Management
       </h2>
 
-      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-lg overflow-hidden`}>
+      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl lg:rounded-2xl shadow-lg overflow-hidden`}>
         {studentsList.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Student</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Email</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Progress</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Last Active</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-600 dark:text-gray-300">Student</th>
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-600 dark:text-gray-300">Progress</th>
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-600 dark:text-gray-300">Last Active</th>
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -711,34 +740,34 @@ const StudentsSection = ({ students, theme }) => {
                   transition={{ delay: index * 0.1 }}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                 >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
+                  <td className="px-4 lg:px-6 py-3 lg:py-4">
+                    <div className="flex items-center gap-2 lg:gap-3">
                       <img
                         src={student.avatar}
                         alt={student.name}
-                        className="w-10 h-10 rounded-full"
+                        className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0"
                       />
-                      <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      <span className={`font-medium text-sm lg:text-base ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                         {student.name}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-500">{student.email}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 lg:px-6 py-3 lg:py-4 text-gray-500 text-xs lg:text-sm">{student.email}</td>
+                  <td className="px-4 lg:px-6 py-3 lg:py-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="w-20 lg:w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
                           style={{ width: `${student.progress}%` }}
                         />
                       </div>
-                      <span className="text-sm font-semibold">{student.progress}%</span>
+                      <span className="text-xs lg:text-sm font-semibold">{student.progress}%</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-500">{student.lastActive}</td>
-                  <td className="px-6 py-4">
-                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg">
-                      <Eye className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <td className="px-4 lg:px-6 py-3 lg:py-4 text-gray-500 text-xs lg:text-sm">{student.lastActive}</td>
+                  <td className="px-4 lg:px-6 py-3 lg:py-4">
+                    <button className="p-1.5 lg:p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg">
+                      <Eye className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-600 dark:text-indigo-400" />
                     </button>
                   </td>
                 </motion.tr>
@@ -747,12 +776,12 @@ const StudentsSection = ({ students, theme }) => {
           </table>
         </div>
         ) : (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <div className="text-center py-8 lg:py-12">
+            <Users className="w-12 h-12 lg:w-16 lg:h-16 text-gray-400 mx-auto mb-3 lg:mb-4" />
+            <h3 className={`text-lg lg:text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
               No students enrolled yet
             </h3>
-            <p className="text-gray-500">
+            <p className="text-sm lg:text-base text-gray-500">
               Students will appear here once they enroll in your courses
             </p>
           </div>
@@ -766,49 +795,49 @@ const StudentsSection = ({ students, theme }) => {
 const AssignmentsSection = ({ theme }) => {
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 lg:mb-6 gap-3">
+        <h2 className={`text-xl lg:text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
           Assignments & Quizzes
         </h2>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold shadow-lg flex items-center gap-2"
+          className="px-4 lg:px-6 py-2.5 lg:py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold shadow-lg flex items-center gap-2 text-sm lg:text-base"
         >
-          <Upload className="w-5 h-5" />
+          <Upload className="w-4 h-4 lg:w-5 lg:h-5" />
           Upload Assignment
         </motion.button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {[1, 2, 3, 4].map((item, index) => (
           <motion.div
             key={item}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg`}
+            className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl lg:rounded-2xl p-4 lg:p-6 shadow-lg`}
           >
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-3 lg:mb-4">
               <div>
-                <h3 className={`text-lg font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <h3 className={`text-base lg:text-lg font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                   Data Structures Assignment {item}
                 </h3>
-                <p className="text-sm text-gray-500">Due: Dec 25, 2025</p>
+                <p className="text-xs lg:text-sm text-gray-500">Due: Dec 25, 2025</p>
               </div>
-              <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+              <span className="px-2 lg:px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold shrink-0">
                 12 Pending
               </span>
             </div>
 
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-500">35 Submissions</span>
+            <div className="flex items-center gap-3 lg:gap-4 mb-3 lg:mb-4">
+              <div className="flex items-center gap-1.5 lg:gap-2">
+                <FileText className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-400" />
+                <span className="text-xs lg:text-sm text-gray-500">35 Submissions</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-500">5 days left</span>
+              <div className="flex items-center gap-1.5 lg:gap-2">
+                <Clock className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-400" />
+                <span className="text-xs lg:text-sm text-gray-500">5 days left</span>
               </div>
             </div>
 
