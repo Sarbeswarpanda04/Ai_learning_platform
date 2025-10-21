@@ -20,12 +20,10 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
-import { useAuthStore } from '../utils/store';
 
 // Signup component - Direct registration without OTP
 const Signup = () => {
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -152,11 +150,15 @@ const Signup = () => {
       if (response.data.success) {
         toast.success('Account created successfully! 🎉');
         
-        // Store auth tokens and user data
+        // Store auth tokens and user data in localStorage
         const { user, profile, access_token, refresh_token } = response.data.data;
         
-        // Update auth store
-        setAuth(user, profile, access_token, refresh_token);
+        localStorage.setItem('accessToken', access_token);
+        localStorage.setItem('refreshToken', refresh_token);
+        localStorage.setItem('user', JSON.stringify(user));
+        if (profile) {
+          localStorage.setItem('profile', JSON.stringify(profile));
+        }
         
         // Redirect to appropriate dashboard based on role
         setTimeout(() => {
