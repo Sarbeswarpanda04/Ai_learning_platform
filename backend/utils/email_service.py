@@ -83,8 +83,9 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
         
+        # Try alternate SMTP ports (Render might block 587)
         smtp_server = os.environ.get('SMTP_SERVER', 'smtp-relay.brevo.com')
-        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_port_env = os.environ.get('SMTP_PORT', '587')
         smtp_login = os.environ.get('SMTP_LOGIN')
         smtp_password = os.environ.get('SMTP_PASSWORD')
         sender_email = os.environ.get('SMTP_EMAIL', 'app.ailearn@gmail.com')
@@ -93,26 +94,47 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
             print("❌ SMTP credentials not configured")
             return False
         
-        print(f"Attempting to send email via SMTP ({smtp_server}:{smtp_port}) to {to_email}...")
+        # Try multiple ports in order of preference
+        smtp_ports = [2525, int(smtp_port_env), 587, 465]  # 2525 first (less likely blocked)
         
-        # Create message
-        message = MIMEMultipart("alternative")
-        message["Subject"] = subject
-        message["From"] = f"{sender_name} <{sender_email}>"
-        message["To"] = to_email
+        for port in smtp_ports:
+            try:
+                print(f"📧 Attempting SMTP connection to {smtp_server}:{port}...")
+                
+                # Create message
+                message = MIMEMultipart("alternative")
+                message["Subject"] = subject
+                message["From"] = f"{sender_name} <{sender_email}>"
+                message["To"] = to_email
+                
+                # Add HTML content
+                html_part = MIMEText(html_content, "html")
+                message.attach(html_part)
+                
+                # Send email with timeout
+                if port == 465:
+                    # Use SSL for port 465
+                    import ssl
+                    context = ssl.create_default_context()
+                    with smtplib.SMTP_SSL(smtp_server, port, timeout=10, context=context) as server:
+                        server.login(smtp_login, smtp_password)
+                        server.sendmail(sender_email, to_email, message.as_string())
+                else:
+                    # Use STARTTLS for other ports
+                    with smtplib.SMTP(smtp_server, port, timeout=10) as server:
+                        server.starttls()
+                        server.login(smtp_login, smtp_password)
+                        server.sendmail(sender_email, to_email, message.as_string())
+                
+                print(f"✅ Email sent successfully to {to_email} via SMTP (port {port})")
+                return True
+                
+            except Exception as port_error:
+                print(f"⚠️ Port {port} failed: {str(port_error)}")
+                continue
         
-        # Add HTML content
-        html_part = MIMEText(html_content, "html")
-        message.attach(html_part)
-        
-        # Send email with timeout
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
-            server.starttls()
-            server.login(smtp_login, smtp_password)
-            server.sendmail(sender_email, to_email, message.as_string())
-        
-        print(f"✅ Email sent successfully to {to_email} via SMTP")
-        return True
+        print(f"❌ All SMTP ports failed for {smtp_server}")
+        return False
         
     except Exception as e:
         print(f"❌ Failed to send email via SMTP: {str(e)}")
