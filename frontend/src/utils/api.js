@@ -45,9 +45,9 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         
         if (!refreshToken) {
-          console.log('No refresh token found, redirecting to login');
-          localStorage.clear();
-          window.location.href = '/login';
+          // Do NOT auto-clear auth on first 401 if refresh token is missing.
+          // This can happen during a login flow where background requests race.
+          console.warn('No refresh token found - skipping auto-logout to avoid race conditions');
           return Promise.reject(error);
         }
 
