@@ -14,6 +14,7 @@ class User(db.Model):
     oauth_provider = db.Column(db.String(50), nullable=True)  # google, facebook, etc.
     oauth_id = db.Column(db.String(200), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    email_verified = db.Column(db.Boolean, default=False)  # Email verification status
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
     
@@ -41,6 +42,7 @@ class User(db.Model):
             'role': self.role,
             'oauth_provider': self.oauth_provider,
             'is_active': self.is_active,
+            'email_verified': self.email_verified,
             'created_at': self.created_at.isoformat(),
             'last_login': self.last_login.isoformat() if self.last_login else None
         }

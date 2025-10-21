@@ -148,18 +148,18 @@ const Signup = () => {
         preferred_subject: formData.preferredSubject
       });
 
-      if (response.data.success || response.data.access_token) {
-        toast.success('Account created successfully! 🎉');
+      if (response.data.success) {
+        toast.success('OTP sent to your email! 📧');
         
-        // Store token if provided
-        if (response.data.access_token) {
-          localStorage.setItem('token', response.data.access_token);
-        }
-
-        // Redirect to dashboard or onboarding
+        // Redirect to OTP verification page
         setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+          navigate('/verify-otp', { 
+            state: { 
+              email: formData.email,
+              name: formData.name 
+            } 
+          });
+        }, 1000);
       }
     } catch (error) {
       console.error('Signup error:', error);

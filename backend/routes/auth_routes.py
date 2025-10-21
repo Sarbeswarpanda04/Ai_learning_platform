@@ -7,6 +7,7 @@ from datetime import datetime
 from database import db
 from models.user import User, StudentProfile
 from utils.security import validate_email, sanitize_input, success_response, error_response
+from utils.email_service import generate_otp, send_otp_email, store_otp, verify_otp, resend_otp
 import os
 
 # Google OAuth is optional
@@ -18,6 +19,9 @@ except ImportError:
     GOOGLE_OAUTH_AVAILABLE = False
 
 auth_bp = Blueprint('auth', __name__)
+
+# Temporary storage for pending registrations (use Redis in production)
+pending_registrations = {}
 
 @auth_bp.route('/check-email', methods=['GET'])
 def check_email():
@@ -46,7 +50,7 @@ def check_email():
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
-    """Register a new user"""
+    """Register a new user - Step 1: Send OTP"""
     try:
         data = request.get_json()
         
@@ -78,20 +82,73 @@ def signup():
         if len(password) < 6:
             return error_response('Password must be at least 6 characters long', 400)
         
+        # Generate OTP
+        otp = generate_otp()
+        
+        # Store registration data temporarily
+        pending_registrations[email] = {
+            'name': name,
+            'email': email,
+            'password': password,
+            'role': role,
+            'preferred_subject': data.get('preferred_subject'),
+            'profile': data.get('profile', {})
+        }
+        
+        # Send OTP email
+        if send_otp_email(email, otp, name):
+            store_otp(email, otp)
+            return success_response({
+                'email': email,
+                'message': 'OTP sent to your email. Please verify to complete registration.'
+            }, 'OTP sent successfully', 200)
+        else:
+            return error_response('Failed to send OTP email. Please check your email address.', 500)
+        
+    except Exception as e:
+        return error_response(f'Registration failed: {str(e)}', 500)
+
+
+@auth_bp.route('/verify-otp', methods=['POST'])
+def verify_otp_endpoint():
+    """Verify OTP and complete registration"""
+    try:
+        data = request.get_json()
+        
+        email = data.get('email', '').lower().strip()
+        otp = data.get('otp', '').strip()
+        
+        if not email or not otp:
+            return error_response('Email and OTP are required', 400)
+        
+        # Verify OTP
+        success, message = verify_otp(email, otp)
+        
+        if not success:
+            return error_response(message, 400)
+        
+        # Get pending registration data
+        if email not in pending_registrations:
+            return error_response('Registration data not found. Please signup again.', 400)
+        
+        reg_data = pending_registrations[email]
+        
         # Create new user
         user = User(
-            name=name,
-            email=email,
-            role=role
+            name=reg_data['name'],
+            email=reg_data['email'],
+            role=reg_data['role'],
+            is_active=True,
+            email_verified=True
         )
-        user.set_password(password)
+        user.set_password(reg_data['password'])
         
         db.session.add(user)
         db.session.flush()  # Get user ID
         
         # Create student profile if role is student
-        if role == 'student':
-            profile_data = data.get('profile', {})
+        if reg_data['role'] == 'student':
+            profile_data = reg_data.get('profile', {})
             profile = StudentProfile(
                 user_id=user.id,
                 branch=profile_data.get('branch'),
@@ -103,6 +160,9 @@ def signup():
         
         db.session.commit()
         
+        # Remove from pending registrations
+        del pending_registrations[email]
+        
         # Generate tokens
         access_token = create_access_token(identity=user.id)
         refresh_token = create_refresh_token(identity=user.id)
@@ -111,11 +171,37 @@ def signup():
             'user': user.to_dict(),
             'access_token': access_token,
             'refresh_token': refresh_token
-        }, 'User registered successfully', 201)
+        }, 'Registration completed successfully!', 201)
         
     except Exception as e:
         db.session.rollback()
-        return error_response(f'Registration failed: {str(e)}', 500)
+        return error_response(f'Verification failed: {str(e)}', 500)
+
+
+@auth_bp.route('/resend-otp', methods=['POST'])
+def resend_otp_endpoint():
+    """Resend OTP to email"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+        
+        if not email:
+            return error_response('Email is required', 400)
+        
+        # Check if registration is pending
+        if email not in pending_registrations:
+            return error_response('No pending registration found for this email', 400)
+        
+        reg_data = pending_registrations[email]
+        success, message = resend_otp(email, reg_data['name'])
+        
+        if success:
+            return success_response({'email': email}, message, 200)
+        else:
+            return error_response(message, 500)
+            
+    except Exception as e:
+        return error_response(f'Failed to resend OTP: {str(e)}', 500)
 
 
 @auth_bp.route('/login', methods=['POST'])
