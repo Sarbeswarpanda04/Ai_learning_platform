@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Lock, ChevronDown, Loader } from 'lucide-react';
+import { X, User, Lock, ChevronDown, Loader, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -14,6 +14,7 @@ const ParentLoginModal = ({ isOpen, onClose }) => {
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [pinError, setPinError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch all students
   useEffect(() => {
@@ -42,6 +43,12 @@ const ParentLoginModal = ({ isOpen, onClose }) => {
       setPinError('');
     }
   };
+
+  // Filter students based on search query
+  const filteredStudents = students.filter(student => 
+    student.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -152,6 +159,22 @@ const ParentLoginModal = ({ isOpen, onClose }) => {
                     </div>
                   ) : (
                     <div className="relative">
+                      {/* Search Input */}
+                      <div className="mb-3">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => setIsDropdownOpen(true)}
+                            placeholder="Search by name or email..."
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Selected Student Display */}
                       <button
                         type="button"
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -178,27 +201,38 @@ const ParentLoginModal = ({ isOpen, onClose }) => {
                             exit={{ opacity: 0, y: -10 }}
                             className="absolute top-full mt-2 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg max-h-60 overflow-y-auto z-10"
                           >
-                            {students.map((student) => (
-                              <button
-                                key={student.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedStudent(student.id);
-                                  setIsDropdownOpen(false);
-                                }}
-                                className={`w-full px-4 py-3 text-left hover:bg-indigo-50 dark:hover:bg-gray-600 transition flex items-center gap-3 ${
-                                  selectedStudent === student.id ? 'bg-indigo-50 dark:bg-gray-600' : ''
-                                }`}
-                              >
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                                  {student.name?.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="font-medium text-gray-900 dark:text-white">{student.name}</p>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">{student.email}</p>
-                                </div>
-                              </button>
-                            ))}
+                            {filteredStudents.length === 0 ? (
+                              <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No students found</p>
+                                {searchQuery && (
+                                  <p className="text-xs mt-1">Try a different search term</p>
+                                )}
+                              </div>
+                            ) : (
+                              filteredStudents.map((student) => (
+                                <button
+                                  key={student.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedStudent(student.id);
+                                    setIsDropdownOpen(false);
+                                    setSearchQuery(''); // Clear search after selection
+                                  }}
+                                  className={`w-full px-4 py-3 text-left hover:bg-indigo-50 dark:hover:bg-gray-600 transition flex items-center gap-3 ${
+                                    selectedStudent === student.id ? 'bg-indigo-50 dark:bg-gray-600' : ''
+                                  }`}
+                                >
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold shrink-0">
+                                    {student.name?.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-gray-900 dark:text-white truncate">{student.name}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{student.email}</p>
+                                  </div>
+                                </button>
+                              ))
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>
