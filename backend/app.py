@@ -2,7 +2,7 @@
 Main Flask application for AI-Driven Personalized Learning Platform
 """
 import os
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
@@ -127,6 +127,20 @@ def create_app(config_name=None):
             'error': 'authorization_required'
         }), 401
     
+    # Serve uploaded files
+    @app.route('/uploads/<filename>', methods=['GET'])
+    def uploaded_file(filename):
+        """Serve uploaded files (documents, videos, etc.)"""
+        try:
+            uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads')
+            return send_from_directory(uploads_dir, filename)
+        except FileNotFoundError:
+            return jsonify({
+                'success': False,
+                'message': 'File not found',
+                'error': 'file_not_found'
+            }), 404
+    
     # Health check endpoint
     @app.route('/health', methods=['GET'])
     def health_check():
@@ -148,7 +162,8 @@ def create_app(config_name=None):
                 'lessons': '/api/lessons',
                 'quiz': '/api/quiz',
                 'ml': '/api/ml',
-                'teacher': '/api/teacher'
+                'teacher': '/api/teacher',
+                'uploads': '/uploads/<filename>'
             }
         }), 200
     

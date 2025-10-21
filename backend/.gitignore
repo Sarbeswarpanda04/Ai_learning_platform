@@ -42,5 +42,6 @@ logs/
 .coverage
 htmlcov/
 
-# Uploads
-uploads/
+# Uploads (keep folder structure, ignore actual files)
+uploads/*
+!uploads/.gitkeep
