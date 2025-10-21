@@ -253,10 +253,19 @@ def get_dashboard_stats():
     """Get real-time dashboard statistics for teacher"""
     try:
         current_user_id = get_jwt_identity()
+        print(f"📊 Dashboard stats requested by user ID: {current_user_id}")
+        
         user = User.query.get(current_user_id)
         
-        if not user or user.role not in ['teacher', 'admin']:
+        if not user:
+            print(f"❌ User not found: {current_user_id}")
+            return jsonify({'error': 'User not found'}), 404
+        
+        if user.role not in ['teacher', 'admin']:
+            print(f"❌ Unauthorized role: {user.role} for user {current_user_id}")
             return jsonify({'error': 'Unauthorized'}), 403
+        
+        print(f"✅ User verified: {user.name} ({user.role})")
         
         # Get teacher's lessons
         lessons = Lesson.query.filter_by(created_by=current_user_id).all()

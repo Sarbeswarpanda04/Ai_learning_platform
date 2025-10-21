@@ -107,6 +107,7 @@ def create_app(config_name=None):
     # JWT error handlers
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
+        print(f"⚠️ JWT Expired: header={jwt_header}, payload={jwt_payload}")
         return jsonify({
             'success': False,
             'message': 'Token has expired',
@@ -115,18 +116,29 @@ def create_app(config_name=None):
     
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
+        print(f"❌ JWT Invalid: {error}")
         return jsonify({
             'success': False,
-            'message': 'Invalid token',
+            'message': f'Invalid token: {str(error)}',
             'error': 'invalid_token'
         }), 401
     
     @jwt.unauthorized_loader
     def missing_token_callback(error):
+        print(f"⚠️ JWT Missing: {error}")
         return jsonify({
             'success': False,
             'message': 'Authorization token is missing',
             'error': 'authorization_required'
+        }), 401
+    
+    @jwt.revoked_token_loader
+    def revoked_token_callback(jwt_header, jwt_payload):
+        print(f"⚠️ JWT Revoked: header={jwt_header}, payload={jwt_payload}")
+        return jsonify({
+            'success': False,
+            'message': 'Token has been revoked',
+            'error': 'token_revoked'
         }), 401
     
     # Serve uploaded files
