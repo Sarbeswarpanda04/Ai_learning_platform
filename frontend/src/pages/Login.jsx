@@ -86,22 +86,44 @@ const Login = () => {
         password: formData.password
       });
 
-      if (response.data.success || response.data.access_token) {
-        const { user, profile, access_token, refresh_token } = response.data.data || response.data;
-        
-        // Update auth store immediately (this also saves to localStorage)
-        setAuth(user, profile, access_token, refresh_token);
-        
-        toast.success(`Welcome back, ${user.name}! 🎉`);
-        
-        // Redirect based on role with short delay
+      if (response.data.success || response.data.access_token || response.data.accessToken) {
+        // Support both snake_case and camelCase response shapes
+        const payload = response.data.data || response.data;
+        const user = payload.user || payload.user_data || null;
+        const profile = payload.profile || null;
+        const access_token = payload.access_token || payload.accessToken || payload.accessTokenValue || null;
+        const refresh_token = payload.refresh_token || payload.refreshToken || null;
+
+        // Defensive: ensure tokens are strings
+        const at = access_token ? String(access_token) : null;
+        const rt = refresh_token ? String(refresh_token) : null;
+
+        // Save tokens to localStorage as a backup and for ProtectedRoute checks
+        if (at) localStorage.setItem('accessToken', at);
+        if (rt) localStorage.setItem('refreshToken', rt);
+
+        console.log('Login payload mapped:', { user: user?.name, hasAccessToken: !!at, hasRefreshToken: !!rt });
+
+        // Update auth store (this will also persist via zustand)
+        setAuth(user, profile, at, rt);
+
+        toast.success(`Welcome back, ${user?.name || 'user'}! 🎉`);
+
+        // Log current localStorage for debugging
+        console.log('LocalStorage after login:', {
+          accessToken: localStorage.getItem('accessToken'),
+          refreshToken: localStorage.getItem('refreshToken'),
+          authStorage: localStorage.getItem('auth-storage')?.slice(0, 200) // truncated
+        });
+
+        // Redirect based on role quickly
         setTimeout(() => {
-          if (user.role === 'teacher' || user.role === 'admin') {
+          if (user?.role === 'teacher' || user?.role === 'admin') {
             navigate('/teacher/dashboard');
           } else {
             navigate('/dashboard');
           }
-        }, 500);
+        }, 300);
       }
     } catch (error) {
       console.error('Login error:', error);

@@ -30,7 +30,15 @@ const ProtectedRoute = ({ children, roles = [] }) => {
       }
       
       // Wait a bit for state to update
-      setTimeout(() => setIsLoading(false), 100);
+      setTimeout(() => {
+        console.log('ProtectedRoute - post-check:', {
+          accessToken: localStorage.getItem('accessToken') ? 'present' : 'missing',
+          authStorage: !!localStorage.getItem('auth-storage'),
+          isAuthenticated,
+          user: user?.email || user?.name || null
+        });
+        setIsLoading(false);
+      }, 150);
     };
 
     checkAuth();
