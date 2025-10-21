@@ -28,12 +28,27 @@ def create_app(config_name=None):
         config_name = os.environ.get('FLASK_ENV', 'development')
     app.config.from_object(config[config_name])
     
-    # Initialize CORS - Simple and permissive for now
+    # Initialize CORS - Allow all origins with proper configuration
     CORS(app, 
-         resources={r"/*": {"origins": "*"}},
-         supports_credentials=False,
-         allow_headers=["Content-Type", "Authorization"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+         resources={
+             r"/*": {
+                 "origins": ["*"],
+                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+                 "allow_headers": ["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+                 "expose_headers": ["Content-Type", "Authorization"],
+                 "supports_credentials": True,
+                 "max_age": 3600
+             }
+         })
+    
+    # Add explicit OPTIONS handler for all routes
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
     
     # JWT
     jwt = JWTManager(app)
