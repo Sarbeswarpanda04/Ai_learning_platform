@@ -35,6 +35,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuthStore } from '../utils/store';
+import ChatBot from '../components/ChatBot';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -820,6 +821,9 @@ const Dashboard = () => {
           </main>
         </div>
       </div>
+
+      {/* AI Chatbot - Floating at bottom-left */}
+      <ChatBot />
     </div>
   );
 };
