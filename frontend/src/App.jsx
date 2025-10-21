@@ -7,7 +7,6 @@ import { useThemeStore, useOfflineStore, useAuthStore } from './utils/store';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import VerifyOTP from './pages/VerifyOTP';
 import Dashboard from './pages/Dashboard';
 import LessonList from './pages/LessonList';
 import AllLessons from './pages/AllLessons';
@@ -89,7 +88,6 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/verify-otp" element={<VerifyOTP />} />
 
             {/* Protected Routes */}
             <Route
