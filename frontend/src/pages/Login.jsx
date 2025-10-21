@@ -99,8 +99,14 @@ const Login = () => {
         const rt = refresh_token ? String(refresh_token) : null;
 
         // Save tokens to localStorage as a backup and for ProtectedRoute checks
-        if (at) localStorage.setItem('accessToken', at);
-        if (rt) localStorage.setItem('refreshToken', rt);
+        if (at) {
+          localStorage.setItem('accessToken', at);
+          console.log('✅ Access token saved to localStorage:', at.substring(0, 50) + '...');
+        }
+        if (rt) {
+          localStorage.setItem('refreshToken', rt);
+          console.log('✅ Refresh token saved to localStorage');
+        }
 
         console.log('Login payload mapped:', { user: user?.name, hasAccessToken: !!at, hasRefreshToken: !!rt });
 
@@ -111,10 +117,18 @@ const Login = () => {
 
         // Log current localStorage for debugging
         console.log('LocalStorage after login:', {
-          accessToken: localStorage.getItem('accessToken'),
-          refreshToken: localStorage.getItem('refreshToken'),
-          authStorage: localStorage.getItem('auth-storage')?.slice(0, 200) // truncated
+          accessToken: localStorage.getItem('accessToken')?.substring(0, 50) + '...',
+          refreshToken: localStorage.getItem('refreshToken') ? 'present' : 'missing',
+          authStorage: localStorage.getItem('auth-storage') ? 'present' : 'missing'
         });
+        
+        // Verify tokens are actually in storage
+        const verifyToken = localStorage.getItem('accessToken');
+        if (!verifyToken) {
+          console.error('❌ CRITICAL: Token not found in localStorage immediately after saving!');
+        } else {
+          console.log('✅ Verified: Token exists in localStorage');
+        }
 
         // Redirect based on role quickly
         setTimeout(() => {

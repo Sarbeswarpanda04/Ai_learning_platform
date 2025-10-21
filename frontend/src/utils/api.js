@@ -34,16 +34,19 @@ api.interceptors.request.use(
     // Use whichever token is available
     const finalToken = token || storeToken;
     
-    console.log('API Request Interceptor:', {
+    console.log('🔍 API Request Interceptor:', {
       url: config.url,
+      method: config.method?.toUpperCase(),
       hasLocalStorageToken: !!token,
       hasStoreToken: !!storeToken,
       usingToken: !!finalToken,
-      tokenPreview: finalToken ? `${finalToken.substring(0, 30)}...` : 'none'
+      tokenPreview: finalToken ? `${finalToken.substring(0, 50)}...` : 'none',
+      timestamp: new Date().toISOString()
     });
     
     if (finalToken) {
       config.headers.Authorization = `Bearer ${finalToken}`;
+      console.log('✅ Authorization header set');
     } else {
       console.warn('⚠️ No token available for request:', config.url);
     }
