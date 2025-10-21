@@ -28,12 +28,26 @@ def create_app(config_name=None):
         config_name = os.environ.get('FLASK_ENV', 'development')
     app.config.from_object(config[config_name])
     
-    # Initialize extensions
+    # Initialize CORS
+    # In production, if CORS_ORIGINS is not set in env, allow Vercel domains
+    cors_origins = app.config.get('CORS_ORIGINS', [])
+    if config_name == 'production' and not os.environ.get('CORS_ORIGINS'):
+        # Allow Vercel and localhost by default
+        cors_origins = [
+            'https://ai-learning-platform-three.vercel.app',
+            'http://localhost:5173',
+            'http://localhost:5174'
+        ]
+    
     CORS(app, 
-         resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}},
-         supports_credentials=True,
-         allow_headers=["Content-Type", "Authorization"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+         resources={r"/api/*": {
+             "origins": cors_origins if cors_origins else "*",
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization", "Accept"],
+             "expose_headers": ["Content-Type", "Authorization"],
+             "supports_credentials": True,
+             "max_age": 3600
+         }})
     
     # JWT
     jwt = JWTManager(app)
