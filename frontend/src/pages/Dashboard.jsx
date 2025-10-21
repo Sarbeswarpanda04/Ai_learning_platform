@@ -120,9 +120,24 @@ const Dashboard = () => {
         }
       }
 
+      // Extract courses data - handle different response formats
+      let coursesArray = [];
+      if (coursesRes.data.data && Array.isArray(coursesRes.data.data)) {
+        coursesArray = coursesRes.data.data;
+      } else if (Array.isArray(coursesRes.data)) {
+        coursesArray = coursesRes.data;
+      } else if (coursesRes.data.lessons && Array.isArray(coursesRes.data.lessons)) {
+        coursesArray = coursesRes.data.lessons;
+      }
+
+      console.log('Courses loaded:', { 
+        count: coursesArray.length, 
+        isArray: Array.isArray(coursesArray) 
+      });
+
       // Mock data for demonstration (replace with real data)
       setDashboardData({
-        courses: coursesRes.data.data || [],
+        courses: coursesArray,
         progress: progressRes.data || {},
         recommendations: recommendationsData.length > 0 ? recommendationsData : [
           {
@@ -207,8 +222,9 @@ const Dashboard = () => {
 
   const COLORS = ['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'];
 
-  // Filter courses
-  const filteredCourses = dashboardData.courses.filter(course => {
+  // Filter courses - ensure courses is an array
+  const coursesArray = Array.isArray(dashboardData.courses) ? dashboardData.courses : [];
+  const filteredCourses = coursesArray.filter(course => {
     const matchesSearch = course.title?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterStatus === 'all' || 
                          (filterStatus === 'completed' && course.progress === 100) ||
