@@ -32,6 +32,21 @@ api.interceptors.request.use(
 );
 
 // Response interceptor to handle token refresh
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -39,19 +54,44 @@ api.interceptors.response.use(
 
     // If token expired, try to refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      
+      // Check if this is a refresh token request itself - don't retry
+      if (originalRequest.url?.includes('/api/auth/refresh')) {
+        console.error('Refresh token is invalid, logging out');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('auth-storage');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
-      try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        
-        if (!refreshToken) {
-          // Do NOT auto-clear auth on first 401 if refresh token is missing.
-          // This can happen during a login flow where background requests race.
-          console.warn('No refresh token found - skipping auto-logout to avoid race conditions');
-          return Promise.reject(error);
-        }
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!refreshToken) {
+        // No refresh token - this might be a race condition during login
+        // Don't logout immediately, just reject this request
+        console.warn('No refresh token found - skipping auto-logout');
+        return Promise.reject(error);
+      }
 
-        console.log('Attempting token refresh with refresh token');
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        console.log('Attempting token refresh');
         
         // Create a new axios instance to avoid infinite loop
         const refreshResponse = await axios.post(
@@ -65,21 +105,33 @@ api.interceptors.response.use(
         );
 
         const { access_token } = refreshResponse.data.data;
-        console.log('Token refresh successful, updating access token');
+        console.log('Token refresh successful');
         
         localStorage.setItem('accessToken', access_token);
-
+        
+        // Update all queued requests with new token
+        processQueue(null, access_token);
+        
         // Update the failed request with new token and retry
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        
+        isRefreshing = false;
+        
         return api(originalRequest);
         
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
-        // Refresh failed, logout user
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('auth-storage');
-        window.location.href = '/login';
+        processQueue(refreshError, null);
+        isRefreshing = false;
+        
+        // Only logout if refresh explicitly failed (not on network errors)
+        if (refreshError.response?.status === 401) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('auth-storage');
+          window.location.href = '/login';
+        }
+        
         return Promise.reject(refreshError);
       }
     }
