@@ -69,14 +69,17 @@ const Signup = () => {
     setEmailChecking(true);
     try {
       const response = await api.get(`/api/auth/check-email?email=${email}`);
-      if (!response.data.available) {
-        setErrors(prev => ({ ...prev, email: 'Email already registered' }));
-      } else {
-        setErrors(prev => ({ ...prev, email: '' }));
+      if (response.data.success) {
+        if (!response.data.data.available) {
+          setErrors(prev => ({ ...prev, email: 'Email already registered' }));
+        } else {
+          setErrors(prev => ({ ...prev, email: '' }));
+        }
       }
     } catch (error) {
-      // If endpoint doesn't exist yet, skip validation
-      console.log('Email check endpoint not available');
+      // Clear any existing email error if check fails
+      setErrors(prev => ({ ...prev, email: '' }));
+      console.log('Email check skipped:', error.message);
     } finally {
       setEmailChecking(false);
     }
@@ -89,11 +92,6 @@ const Signup = () => {
     
     // Clear errors for this field
     setErrors(prev => ({ ...prev, [name]: '' }));
-
-    // Check email availability on blur
-    if (name === 'email' && value && validateEmail(value)) {
-      checkEmailAvailability(value);
-    }
   };
 
   // Validate form
