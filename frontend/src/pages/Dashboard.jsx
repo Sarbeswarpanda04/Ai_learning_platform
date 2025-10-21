@@ -76,18 +76,33 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
+      // Get user data from localStorage if not in state
+      const storedUser = user || JSON.parse(localStorage.getItem('user') || '{}');
+      
       // Fetch multiple endpoints
-      const [coursesRes, progressRes, recommendationsRes] = await Promise.all([
+      const [coursesRes, progressRes] = await Promise.all([
         api.get('/api/lessons'),
-        api.get('/api/ml/student/dashboard'),
-        api.get('/api/ml/recommend', { data: { user_id: user?.id } })
+        api.get('/api/ml/student/dashboard').catch(err => ({ data: {} }))
       ]);
+      
+      // Fetch recommendations separately (POST request)
+      let recommendationsData = [];
+      if (storedUser?.id) {
+        try {
+          const recommendationsRes = await api.post('/api/ml/recommend', { 
+            user_id: storedUser.id 
+          });
+          recommendationsData = recommendationsRes.data?.recommendations || [];
+        } catch (err) {
+          console.log('Recommendations not available:', err.message);
+        }
+      }
 
       // Mock data for demonstration (replace with real data)
       setDashboardData({
         courses: coursesRes.data.data || [],
         progress: progressRes.data || {},
-        recommendations: [
+        recommendations: recommendationsData.length > 0 ? recommendationsData : [
           {
             id: 1,
             title: 'Review Mathematics Basics',
