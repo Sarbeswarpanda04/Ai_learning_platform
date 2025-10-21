@@ -4,8 +4,12 @@ Email Service for sending OTP and notifications using Brevo (formerly Sendinblue
 import os
 import random
 import string
+import smtplib
+import ssl
 from datetime import datetime, timedelta
 from functools import wraps
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import requests
 
 # Store OTPs in memory (in production, use Redis or database)
@@ -79,10 +83,6 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
     
     # Fallback to SMTP if API fails or not configured
     try:
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        
         # Try alternate SMTP ports (Render might block 587)
         smtp_server = os.environ.get('SMTP_SERVER', 'smtp-relay.brevo.com')
         smtp_port_env = os.environ.get('SMTP_PORT', '587')
@@ -114,7 +114,6 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
                 # Send email with timeout
                 if port == 465:
                     # Use SSL for port 465
-                    import ssl
                     context = ssl.create_default_context()
                     with smtplib.SMTP_SSL(smtp_server, port, timeout=10, context=context) as server:
                         server.login(smtp_login, smtp_password)
