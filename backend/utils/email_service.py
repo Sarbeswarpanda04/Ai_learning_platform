@@ -64,8 +64,8 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
             }
             
             print(f"📤 Sending request to Brevo API...")
-            # Send request
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            # Send request with short timeout
+            response = requests.post(url, json=payload, headers=headers, timeout=3)
             
             print(f"📬 Brevo API Response: Status={response.status_code}")
             
@@ -74,7 +74,7 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
                 return True
             else:
                 print(f"⚠️ Brevo API failed. Status: {response.status_code}")
-                print(f"   Response: {response.text}")
+                print(f"   Response: {response.text[:200]}")  # Limit response length
         else:
             print("⚠️ BREVO_API_KEY not found in environment, trying SMTP...")
         
@@ -94,8 +94,8 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
             print("❌ SMTP credentials not configured")
             return False
         
-        # Try multiple ports in order of preference
-        smtp_ports = [2525, int(smtp_port_env), 587, 465]  # 2525 first (less likely blocked)
+        # Try multiple ports in order of preference with short timeout
+        smtp_ports = [2525, int(smtp_port_env)]  # Only try 2 ports to avoid timeout
         
         for port in smtp_ports:
             try:
@@ -111,25 +111,17 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
                 html_part = MIMEText(html_content, "html")
                 message.attach(html_part)
                 
-                # Send email with timeout
-                if port == 465:
-                    # Use SSL for port 465
-                    context = ssl.create_default_context()
-                    with smtplib.SMTP_SSL(smtp_server, port, timeout=10, context=context) as server:
-                        server.login(smtp_login, smtp_password)
-                        server.sendmail(sender_email, to_email, message.as_string())
-                else:
-                    # Use STARTTLS for other ports
-                    with smtplib.SMTP(smtp_server, port, timeout=10) as server:
-                        server.starttls()
-                        server.login(smtp_login, smtp_password)
-                        server.sendmail(sender_email, to_email, message.as_string())
+                # Send email with SHORT timeout (3 seconds to avoid worker kill)
+                with smtplib.SMTP(smtp_server, port, timeout=3) as server:
+                    server.starttls()
+                    server.login(smtp_login, smtp_password)
+                    server.sendmail(sender_email, to_email, message.as_string())
                 
                 print(f"✅ Email sent successfully to {to_email} via SMTP (port {port})")
                 return True
                 
             except Exception as port_error:
-                print(f"⚠️ Port {port} failed: {str(port_error)}")
+                print(f"⚠️ Port {port} failed: {str(port_error)[:100]}")  # Limit error message
                 continue
         
         print(f"❌ All SMTP ports failed for {smtp_server}")
