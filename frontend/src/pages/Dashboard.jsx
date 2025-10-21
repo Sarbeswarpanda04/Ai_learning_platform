@@ -296,9 +296,9 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      {/* Header - Fixed with proper z-index */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 pt-16">
+      {/* Header - Fixed below main navbar */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 fixed top-16 left-0 right-0 z-40">
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-2 sm:gap-4">
             {/* Left Section - Logo and Welcome */}
@@ -364,8 +364,8 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Main Content - Add padding-top to account for fixed header */}
-      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pt-20 sm:pt-24">
+      {/* Main Content - Add padding-top to account for both navbars */}
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pt-24 sm:pt-28">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* Sidebar - Responsive */}
           <motion.aside
@@ -374,7 +374,7 @@ const Dashboard = () => {
             className="lg:col-span-3"
           >
             {/* Desktop Sidebar */}
-            <div className="hidden lg:block bg-white rounded-2xl shadow-lg p-4 sticky top-28">
+            <div className="hidden lg:block bg-white rounded-2xl shadow-lg p-4 sticky top-32">
               <nav className="space-y-2">
                 {sidebarItems.map((item) => (
                   <motion.button
