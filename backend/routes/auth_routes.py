@@ -9,8 +9,8 @@ from database import db
 from models.user import User, StudentProfile
 from utils.security import validate_email, sanitize_input, success_response, error_response
 from utils.email_service import generate_otp, send_otp_email, store_otp, verify_otp, resend_otp
-from utils.db_utils import retry_on_db_error
 import os
+import time
 
 # Google OAuth is optional
 try:
@@ -76,14 +76,18 @@ def signup():
         if role not in ['student', 'teacher', 'admin']:
             return error_response('Invalid role. Must be student, teacher, or admin', 400)
         
-        # Check if user already exists with retry logic
-        @retry_on_db_error(max_retries=3)
-        def check_existing_user():
-            return User.query.filter_by(email=email).first()
-        
-        existing_user = check_existing_user()
-        if existing_user:
-            return error_response('Email already registered', 409)
+        # Check if user already exists
+        try:
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                return error_response('Email already registered', 409)
+        except (OperationalError, DBAPIError) as e:
+            # Retry once on database error
+            time.sleep(1)
+            db.session.rollback()
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                return error_response('Email already registered', 409)
         
         # Validate password strength
         if len(password) < 6:
@@ -140,9 +144,8 @@ def verify_otp_endpoint():
         
         reg_data = pending_registrations[email]
         
-        # Create new user with retry logic
-        @retry_on_db_error(max_retries=3)
-        def create_user_account():
+        # Create new user
+        try:
             user = User(
                 name=reg_data['name'],
                 email=reg_data['email'],
@@ -168,9 +171,35 @@ def verify_otp_endpoint():
                 db.session.add(profile)
             
             db.session.commit()
-            return user
-        
-        user = create_user_account()
+        except (OperationalError, DBAPIError) as e:
+            # Retry once on database error
+            time.sleep(1)
+            db.session.rollback()
+            
+            user = User(
+                name=reg_data['name'],
+                email=reg_data['email'],
+                role=reg_data['role'],
+                is_active=True,
+                email_verified=True
+            )
+            user.set_password(reg_data['password'])
+            
+            db.session.add(user)
+            db.session.flush()
+            
+            if reg_data['role'] == 'student':
+                profile_data = reg_data.get('profile', {})
+                profile = StudentProfile(
+                    user_id=user.id,
+                    branch=profile_data.get('branch'),
+                    semester=profile_data.get('semester'),
+                    baseline_score=profile_data.get('baseline_score', 0),
+                    preferences=profile_data.get('preferences', {})
+                )
+                db.session.add(profile)
+            
+            db.session.commit()
         
         # Remove from pending registrations
         del pending_registrations[email]
