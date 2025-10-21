@@ -119,7 +119,6 @@ def signup():
             db.session.flush()  # Get user ID
             
             # Create student profile if role is student
-            profile_dict = None
             if role == 'student':
                 profile_data = data.get('profile', {})
                 profile = StudentProfile(
@@ -130,11 +129,9 @@ def signup():
                     preferences=profile_data.get('preferences', {})
                 )
                 db.session.add(profile)
-                db.session.flush()
-                profile_dict = profile.to_dict()
             
             db.session.commit()
-            print(f"✅ User created successfully: {email}")
+            print(f"✅ User created successfully: {email} with ID: {user.id}")
             
         except (OperationalError, DBAPIError) as e:
             print(f"Database error on user creation: {str(e)}")
@@ -154,7 +151,6 @@ def signup():
             db.session.add(user)
             db.session.flush()
             
-            profile_dict = None
             if role == 'student':
                 profile_data = data.get('profile', {})
                 profile = StudentProfile(
@@ -165,16 +161,24 @@ def signup():
                     preferences=profile_data.get('preferences', {})
                 )
                 db.session.add(profile)
-                db.session.flush()
-                profile_dict = profile.to_dict()
             
             db.session.commit()
-            print(f"✅ User created successfully (retry): {email}")
+            print(f"✅ User created successfully (retry): {email} with ID: {user.id}")
         
-        # Generate tokens
+        # Refresh user to ensure all relationships are loaded
+        db.session.refresh(user)
+        
+        # Get profile data if student
+        profile_dict = None
+        if user.role == 'student' and user.student_profile:
+            profile_dict = user.student_profile.to_dict()
+        
+        # Generate tokens with user ID
+        print(f"Generating tokens for user ID: {user.id}")
         access_token = create_access_token(identity=user.id)
         refresh_token = create_refresh_token(identity=user.id)
         
+        print(f"✅ Signup complete for {email}")
         return success_response({
             'user': user.to_dict(),
             'profile': profile_dict,
