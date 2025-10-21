@@ -54,12 +54,15 @@ def check_email():
 def signup():
     """Register a new user - Step 1: Send OTP"""
     try:
+        print("=== Signup Route Called ===")
         data = request.get_json()
+        print(f"Request data: {data}")
         
         # Validate required fields
         required_fields = ['name', 'email', 'password', 'role']
         for field in required_fields:
             if field not in data or not data[field]:
+                print(f"Missing field: {field}")
                 return error_response(f'Missing required field: {field}', 400)
         
         # Sanitize inputs
@@ -68,35 +71,49 @@ def signup():
         password = data['password']
         role = data['role'].lower()
         
+        print(f"Sanitized - Name: {name}, Email: {email}, Role: {role}")
+        
         # Validate email
         if not validate_email(email):
+            print(f"Invalid email: {email}")
             return error_response('Invalid email format', 400)
         
         # Validate role
         if role not in ['student', 'teacher', 'admin']:
+            print(f"Invalid role: {role}")
             return error_response('Invalid role. Must be student, teacher, or admin', 400)
         
         # Check if user already exists
+        print("Checking for existing user...")
         try:
             existing_user = User.query.filter_by(email=email).first()
             if existing_user:
+                print(f"User already exists: {email}")
                 return error_response('Email already registered', 409)
         except (OperationalError, DBAPIError) as e:
+            print(f"Database error on first attempt: {str(e)}")
             # Retry once on database error
             time.sleep(1)
             db.session.rollback()
             existing_user = User.query.filter_by(email=email).first()
             if existing_user:
+                print(f"User already exists (retry): {email}")
                 return error_response('Email already registered', 409)
+        
+        print("User check passed")
         
         # Validate password strength
         if len(password) < 6:
+            print(f"Password too short: {len(password)} chars")
             return error_response('Password must be at least 6 characters long', 400)
         
         # Generate OTP
+        print("Generating OTP...")
         otp = generate_otp()
+        print(f"OTP generated: {otp}")
         
         # Store registration data temporarily
+        print("Storing registration data...")
         pending_registrations[email] = {
             'name': name,
             'email': email,
@@ -105,14 +122,24 @@ def signup():
             'preferred_subject': data.get('preferred_subject'),
             'profile': data.get('profile', {})
         }
+        print(f"Registration data stored for: {email}")
         
         # Store OTP
+        print("Storing OTP...")
         store_otp(email, otp)
+        print("OTP stored successfully")
         
         # Try to send OTP email
-        email_sent = send_otp_email(email, otp, name)
+        print("Attempting to send OTP email...")
+        try:
+            email_sent = send_otp_email(email, otp, name)
+            print(f"Email send result: {email_sent}")
+        except Exception as email_error:
+            print(f"Error sending email: {str(email_error)}")
+            email_sent = False
         
         if email_sent:
+            print("Email sent successfully")
             return success_response({
                 'email': email,
                 'message': 'OTP sent to your email. Please verify to complete registration.'
@@ -127,6 +154,9 @@ def signup():
             }, 'OTP generated - email not sent (configure SMTP)', 200)
         
     except Exception as e:
+        print(f"❌ Signup error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return error_response(f'Registration failed: {str(e)}', 500)
 
 
