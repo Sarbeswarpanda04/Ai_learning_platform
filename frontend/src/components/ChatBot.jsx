@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Minimize2, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,16 +61,10 @@ const ChatBot = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/chat`,
-        { message: inputValue },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      );
+      // Use the api utility which handles token automatically
+      const response = await api.post('/api/chat', { 
+        message: inputValue 
+      });
 
       const aiMessage = {
         role: 'assistant',
@@ -81,9 +75,21 @@ const ChatBot = () => {
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // More detailed error message based on the error type
+      let errorContent = "I'm sorry, I'm having trouble connecting right now. Please try again later.";
+      
+      if (error.response?.status === 401) {
+        errorContent = "Please log in again to use the chatbot.";
+      } else if (error.response?.status === 503) {
+        errorContent = "The AI service is currently unavailable. Please try again later.";
+      } else if (error.message === 'Network Error') {
+        errorContent = "Network connection error. Please check your internet connection.";
+      }
+      
       const errorMessage = {
         role: 'assistant',
-        content: "I'm sorry, I'm having trouble connecting right now. Please try again later.",
+        content: errorContent,
         timestamp: new Date().toISOString(),
         isError: true
       };
