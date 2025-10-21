@@ -20,9 +20,11 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import useAuthStore from '../store/authStore';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { setAuth } = useAuthStore();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -147,26 +149,23 @@ const Signup = () => {
       });
 
       if (response.data.success) {
-        // Check if OTP is in response (SMTP not configured - testing mode)
-        const otpInResponse = response.data.data?.otp;
+        toast.success('Account created successfully! 🎉');
         
-        if (otpInResponse) {
-          toast.success(`OTP generated: ${otpInResponse} (SMTP not configured)`, {
-            duration: 10000  // Show for 10 seconds
-          });
-        } else {
-          toast.success('OTP sent to your email! 📧');
-        }
+        // Store auth tokens and user data
+        const { user, profile, access_token, refresh_token } = response.data.data;
         
-        // Redirect to OTP verification page
+        // Update auth store
+        setAuth(user, profile, access_token, refresh_token);
+        
+        // Redirect to appropriate dashboard based on role
         setTimeout(() => {
-          navigate('/verify-otp', { 
-            state: { 
-              email: formData.email,
-              name: formData.name,
-              testOtp: otpInResponse  // Pass OTP for auto-fill in testing
-            } 
-          });
+          if (user.role === 'student') {
+            navigate('/dashboard');
+          } else if (user.role === 'teacher') {
+            navigate('/teacher/dashboard');
+          } else {
+            navigate('/admin/dashboard');
+          }
         }, 1000);
       }
     } catch (error) {

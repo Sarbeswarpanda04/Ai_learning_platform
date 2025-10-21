@@ -52,7 +52,7 @@ def check_email():
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
-    """Register a new user - Step 1: Send OTP"""
+    """Register a new user - Direct signup without OTP"""
     try:
         print("=== Signup Route Called ===")
         data = request.get_json()
@@ -107,54 +107,87 @@ def signup():
             print(f"Password too short: {len(password)} chars")
             return error_response('Password must be at least 6 characters long', 400)
         
-        # Generate OTP
-        print("Generating OTP...")
-        otp = generate_otp()
-        print(f"OTP generated: {otp}")
-        
-        # Store registration data temporarily
-        print("Storing registration data...")
-        pending_registrations[email] = {
-            'name': name,
-            'email': email,
-            'password': password,
-            'role': role,
-            'preferred_subject': data.get('preferred_subject'),
-            'profile': data.get('profile', {})
-        }
-        print(f"Registration data stored for: {email}")
-        
-        # Store OTP
-        print("Storing OTP...")
-        store_otp(email, otp)
-        print("OTP stored successfully")
-        
-        # Try to send OTP email (with short timeout to avoid worker kill)
-        print("Attempting to send OTP email...")
+        # Create new user directly (no OTP verification)
+        print("Creating user account...")
         try:
-            email_sent = send_otp_email(email, otp, name)
-            print(f"Email send result: {email_sent}")
-        except Exception as email_error:
-            print(f"Error sending email: {str(email_error)}")
-            email_sent = False
+            user = User(
+                name=name,
+                email=email,
+                role=role,
+                is_active=True,
+                email_verified=False  # Skip email verification
+            )
+            user.set_password(password)
+            
+            db.session.add(user)
+            db.session.flush()  # Get user ID
+            
+            # Create student profile if role is student
+            profile_dict = None
+            if role == 'student':
+                profile_data = data.get('profile', {})
+                profile = StudentProfile(
+                    user_id=user.id,
+                    branch=profile_data.get('branch'),
+                    semester=profile_data.get('semester'),
+                    baseline_score=profile_data.get('baseline_score', 0),
+                    preferences=profile_data.get('preferences', {})
+                )
+                db.session.add(profile)
+                db.session.flush()
+                profile_dict = profile.to_dict()
+            
+            db.session.commit()
+            print(f"✅ User created successfully: {email}")
+            
+        except (OperationalError, DBAPIError) as e:
+            print(f"Database error on user creation: {str(e)}")
+            # Retry once on database error
+            time.sleep(1)
+            db.session.rollback()
+            
+            user = User(
+                name=name,
+                email=email,
+                role=role,
+                is_active=True,
+                email_verified=False
+            )
+            user.set_password(password)
+            
+            db.session.add(user)
+            db.session.flush()
+            
+            profile_dict = None
+            if role == 'student':
+                profile_data = data.get('profile', {})
+                profile = StudentProfile(
+                    user_id=user.id,
+                    branch=profile_data.get('branch'),
+                    semester=profile_data.get('semester'),
+                    baseline_score=profile_data.get('baseline_score', 0),
+                    preferences=profile_data.get('preferences', {})
+                )
+                db.session.add(profile)
+                db.session.flush()
+                profile_dict = profile.to_dict()
+            
+            db.session.commit()
+            print(f"✅ User created successfully (retry): {email}")
         
-        if email_sent:
-            print("✅ Email sent successfully")
-            return success_response({
-                'email': email,
-                'message': 'OTP sent to your email. Please check your inbox.'
-            }, 'OTP sent successfully', 200)
-        else:
-            # Email failed - return OTP in response for testing
-            print(f"⚠️  Email delivery failed - returning OTP in response for testing")
-            print(f"⚠️  OTP for {email}: {otp}")
-            return success_response({
-                'email': email,
-                'otp': otp,  # Include OTP for testing when email fails
-                'message': 'OTP generated. Email delivery unavailable - OTP shown for testing.'
-            }, 'OTP generated (email unavailable)', 200)
+        # Generate tokens
+        access_token = create_access_token(identity=user.id)
+        refresh_token = create_refresh_token(identity=user.id)
+        
+        return success_response({
+            'user': user.to_dict(),
+            'profile': profile_dict,
+            'access_token': access_token,
+            'refresh_token': refresh_token
+        }, 'Registration completed successfully!', 201)
         
     except Exception as e:
+        db.session.rollback()
         print(f"❌ Signup error: {str(e)}")
         import traceback
         traceback.print_exc()
