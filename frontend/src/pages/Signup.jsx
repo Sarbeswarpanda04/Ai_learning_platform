@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
-import useAuthStore from '../store/authStore';
+import { useAuthStore } from '../utils/store';
 
 const Signup = () => {
   const navigate = useNavigate();
