@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore, useThemeStore } from '../utils/store';
 import { lessonAPI, quizAPI, mlAPI } from '../utils/api';
+import api from '../utils/api';
 import toast from 'react-hot-toast';
 
 const TeacherDashboard = () => {
@@ -42,10 +43,20 @@ const TeacherDashboard = () => {
     totalStudents: 0,
     activeCourses: 0,
     pendingAssignments: 0,
-    newMessages: 0
+    newMessages: 0,
+    trends: {
+      students: '+0%',
+      courses: '0',
+      assignments: '+0%',
+      messages: '+0%'
+    },
+    studentsUp: true,
+    coursesUp: true,
+    assignmentsUp: true
   });
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,34 +91,67 @@ const TeacherDashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Fetch courses
-      const coursesRes = await lessonAPI.getLessons({ teacher: true });
-      console.log('Courses API response:', coursesRes.data);
+      // Fetch real-time dashboard stats from database
+      const [statsRes, coursesRes, studentsRes, activityRes] = await Promise.all([
+        api.get('/api/teacher/dashboard/stats').catch(err => {
+          console.error('Stats API error:', err);
+          return { data: { data: null } };
+        }),
+        lessonAPI.getLessons({ teacher: true }).catch(err => {
+          console.error('Courses API error:', err);
+          return { data: { data: [] } };
+        }),
+        api.get('/api/teacher/students').catch(err => {
+          console.error('Students API error:', err);
+          return { data: { data: [] } };
+        }),
+        api.get('/api/teacher/recent-activity').catch(err => {
+          console.error('Activity API error:', err);
+          return { data: { data: [] } };
+        })
+      ]);
+
+      console.log('Dashboard API responses:', {
+        stats: statsRes.data,
+        courses: coursesRes.data,
+        students: studentsRes.data,
+        activity: activityRes.data
+      });
+
+      // Set stats from API
+      if (statsRes.data?.data) {
+        setStats({
+          totalStudents: statsRes.data.data.totalStudents || 0,
+          activeCourses: statsRes.data.data.activeCourses || 0,
+          pendingAssignments: statsRes.data.data.pendingAssignments || 0,
+          newMessages: statsRes.data.data.newMessages || 0,
+          trends: statsRes.data.data.trends || {},
+          studentsUp: statsRes.data.data.studentsUp !== false,
+          coursesUp: statsRes.data.data.coursesUp !== false,
+          assignmentsUp: statsRes.data.data.assignmentsUp !== false
+        });
+      }
       
       // Ensure courses is always an array
       const coursesData = coursesRes.data?.data || coursesRes.data?.lessons || [];
       const coursesArray = Array.isArray(coursesData) ? coursesData : [];
-      
       console.log('Processed courses:', coursesArray);
       setCourses(coursesArray);
 
-      // Mock stats for MVP (you can replace with real API)
-      setStats({
-        totalStudents: 45,
-        activeCourses: coursesArray.length || 5,
-        pendingAssignments: 12,
-        newMessages: 8
-      });
+      // Set students from API
+      const studentsData = studentsRes.data?.data || [];
+      const studentsArray = Array.isArray(studentsData) ? studentsData : [];
+      console.log('Processed students:', studentsArray);
+      setStudents(studentsArray);
 
-      // Mock students data
-      setStudents([
-        { id: 1, name: 'Rajesh Kumar', email: 'rajesh@example.com', progress: 85, lastActive: '2 hours ago', avatar: 'https://ui-avatars.com/api/?name=Rajesh+Kumar' },
-        { id: 2, name: 'Priya Singh', email: 'priya@example.com', progress: 92, lastActive: '1 day ago', avatar: 'https://ui-avatars.com/api/?name=Priya+Singh' },
-        { id: 3, name: 'Amit Patel', email: 'amit@example.com', progress: 78, lastActive: '3 hours ago', avatar: 'https://ui-avatars.com/api/?name=Amit+Patel' },
-      ]);
+      // Set recent activity from API
+      const activityData = activityRes.data?.data || [];
+      if (Array.isArray(activityData) && activityData.length > 0) {
+        setRecentActivity(activityData);
+      }
 
     } catch (error) {
-      console.error('Error fetching courses:', error);
+      console.error('Error fetching dashboard data:', error);
       console.error('Error details:', {
         status: error.response?.status,
         message: error.response?.data?.message,
@@ -116,6 +160,7 @@ const TeacherDashboard = () => {
       
       // Set empty array on error to prevent .map() errors
       setCourses([]);
+      setStudents([]);
       
       // Don't show error toast for 401 (will auto-redirect to login)
       if (error.response?.status !== 401) {
@@ -144,31 +189,31 @@ const TeacherDashboard = () => {
       value: stats.totalStudents,
       icon: Users,
       color: 'from-blue-500 to-cyan-500',
-      trend: '+12%',
-      trendUp: true
+      trend: stats.trends?.students || '+0%',
+      trendUp: stats.studentsUp !== false
     },
     {
       title: 'Active Courses',
       value: stats.activeCourses,
       icon: BookOpen,
       color: 'from-purple-500 to-pink-500',
-      trend: '+5%',
-      trendUp: true
+      trend: stats.trends?.courses || '0',
+      trendUp: stats.coursesUp !== false
     },
     {
       title: 'Pending Assignments',
       value: stats.pendingAssignments,
       icon: FileText,
       color: 'from-orange-500 to-red-500',
-      trend: '-3%',
-      trendUp: false
+      trend: stats.trends?.assignments || '+0%',
+      trendUp: stats.assignmentsUp !== false
     },
     {
       title: 'New Messages',
       value: stats.newMessages,
       icon: MessageSquare,
       color: 'from-green-500 to-emerald-500',
-      trend: '+18%',
+      trend: stats.trends?.messages || '+0%',
       trendUp: true
     }
   ];
@@ -506,35 +551,44 @@ const TeacherDashboard = () => {
                   Recent Activity
                 </h2>
                 <div className="space-y-3 lg:space-y-4">
-                  {[
-                    { action: 'New assignment submitted', student: 'Priya Singh', time: '5 min ago', icon: FileText },
-                    { action: 'Course completion', student: 'Rajesh Kumar', time: '1 hour ago', icon: Award },
-                    { action: 'New message received', student: 'Amit Patel', time: '2 hours ago', icon: MessageSquare },
-                  ].map((activity, index) => {
-                    const Icon = activity.icon;
-                    return (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`flex items-center gap-3 lg:gap-4 p-3 lg:p-4 rounded-xl ${
-                          theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
-                        } hover:shadow-md transition-shadow`}
-                      >
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg shrink-0">
-                          <Icon className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-600 dark:text-indigo-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-medium text-sm lg:text-base truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                            {activity.action}
-                          </p>
-                          <p className="text-xs lg:text-sm text-gray-500 truncate">{activity.student}</p>
-                        </div>
-                        <span className="text-xs text-gray-400 shrink-0">{activity.time}</span>
-                      </motion.div>
-                    );
-                  })}
+                  {recentActivity.length > 0 ? (
+                    recentActivity.slice(0, 3).map((activity, index) => {
+                      const iconMap = {
+                        'FileText': FileText,
+                        'Award': Award,
+                        'MessageSquare': MessageSquare
+                      };
+                      const Icon = iconMap[activity.icon] || FileText;
+                      
+                      return (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className={`flex items-center gap-3 lg:gap-4 p-3 lg:p-4 rounded-xl ${
+                            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'
+                          } hover:shadow-md transition-shadow`}
+                        >
+                          <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg shrink-0">
+                            <Icon className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-600 dark:text-indigo-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-medium text-sm lg:text-base truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                              {activity.action}
+                            </p>
+                            <p className="text-xs lg:text-sm text-gray-500 truncate">{activity.student}</p>
+                          </div>
+                          <span className="text-xs text-gray-400 shrink-0">{activity.time}</span>
+                        </motion.div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8">
+                      <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500 text-sm">No recent activity</p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
 
@@ -660,24 +714,24 @@ const CoursesSection = ({ courses, theme }) => {
 
               <div className="flex items-center gap-2 mb-2 lg:mb-3">
                 <Users className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-400" />
-                <span className="text-xs lg:text-sm text-gray-500">45 students enrolled</span>
+                <span className="text-xs lg:text-sm text-gray-500">
+                  {course.views_count || 0} views
+                </span>
               </div>
 
               {/* Progress Bar */}
               <div className="mb-2">
                 <div className="flex justify-between text-xs lg:text-sm mb-1">
-                  <span className="text-gray-500">Course Progress</span>
+                  <span className="text-gray-500">Subject</span>
                   <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    65%
+                    {course.subject || 'General'}
                   </span>
                 </div>
-                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: '65%' }}
-                    transition={{ duration: 1, delay: 0.2 }}
-                    className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500"
-                  />
+                <div className="flex justify-between text-xs lg:text-sm mb-1">
+                  <span className="text-gray-500">Difficulty</span>
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} capitalize`}>
+                    {course.difficulty || 'Beginner'}
+                  </span>
                 </div>
               </div>
             </motion.div>

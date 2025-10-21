@@ -247,6 +247,304 @@ def create_assignment():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@teacher_routes.route('/api/teacher/dashboard/stats', methods=['GET'])
+@jwt_required()
+def get_dashboard_stats():
+    """Get real-time dashboard statistics for teacher"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user or user.role not in ['teacher', 'admin']:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        # Get teacher's lessons
+        lessons = Lesson.query.filter_by(created_by=current_user_id).all()
+        lesson_ids = [lesson.id for lesson in lessons]
+        
+        # Get total students enrolled in teacher's courses
+        from models.lesson import LessonProgress
+        enrolled_students = db.session.query(LessonProgress.user_id)\
+            .filter(LessonProgress.lesson_id.in_(lesson_ids))\
+            .distinct()\
+            .count() if lesson_ids else 0
+        
+        # Get total active courses (published lessons)
+        active_courses = Lesson.query.filter_by(
+            created_by=current_user_id, 
+            is_published=True
+        ).count()
+        
+        # Get pending assignments (quizzes with recent attempts that need review)
+        from models.quiz import Quiz, Attempt, QuizSession
+        from datetime import timedelta
+        
+        # Count quiz sessions from last 7 days
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        pending_assignments = QuizSession.query\
+            .join(Lesson, QuizSession.lesson_id == Lesson.id)\
+            .filter(
+                Lesson.created_by == current_user_id,
+                QuizSession.completed_at >= seven_days_ago
+            )\
+            .count()
+        
+        # Get new messages (mock for now - can integrate with actual message system)
+        new_messages = 0  # TODO: Integrate with actual messaging system
+        
+        # Calculate trends (compare with previous period)
+        fourteen_days_ago = datetime.utcnow() - timedelta(days=14)
+        
+        # Students trend
+        prev_enrolled = db.session.query(LessonProgress.user_id)\
+            .filter(
+                LessonProgress.lesson_id.in_(lesson_ids),
+                LessonProgress.started_at < seven_days_ago,
+                LessonProgress.started_at >= fourteen_days_ago
+            )\
+            .distinct()\
+            .count() if lesson_ids else 1
+        
+        students_trend = round(((enrolled_students - prev_enrolled) / max(prev_enrolled, 1)) * 100, 1) if prev_enrolled > 0 else 0
+        
+        # Courses trend (new courses in last 7 days)
+        new_courses = Lesson.query.filter(
+            Lesson.created_by == current_user_id,
+            Lesson.created_at >= seven_days_ago
+        ).count()
+        courses_trend = f"+{new_courses}" if new_courses > 0 else "0"
+        
+        # Assignments trend
+        prev_assignments = QuizSession.query\
+            .join(Lesson, QuizSession.lesson_id == Lesson.id)\
+            .filter(
+                Lesson.created_by == current_user_id,
+                QuizSession.completed_at >= fourteen_days_ago,
+                QuizSession.completed_at < seven_days_ago
+            )\
+            .count()
+        
+        assignments_trend = round(((pending_assignments - prev_assignments) / max(prev_assignments, 1)) * 100, 1) if prev_assignments > 0 else 0
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'totalStudents': enrolled_students,
+                'activeCourses': active_courses,
+                'pendingAssignments': pending_assignments,
+                'newMessages': new_messages,
+                'trends': {
+                    'students': f"{'+' if students_trend > 0 else ''}{students_trend}%",
+                    'courses': courses_trend,
+                    'assignments': f"{'+' if assignments_trend > 0 else ''}{assignments_trend}%",
+                    'messages': '+18%'  # Mock
+                },
+                'studentsUp': students_trend >= 0,
+                'coursesUp': new_courses > 0,
+                'assignmentsUp': assignments_trend >= 0
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in get_dashboard_stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@teacher_routes.route('/api/teacher/students', methods=['GET'])
+@jwt_required()
+def get_teacher_students():
+    """Get list of students enrolled in teacher's courses"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user or user.role not in ['teacher', 'admin']:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        # Get teacher's lessons
+        lessons = Lesson.query.filter_by(created_by=current_user_id).all()
+        lesson_ids = [lesson.id for lesson in lessons]
+        
+        if not lesson_ids:
+            return jsonify({
+                'success': True,
+                'data': []
+            }), 200
+        
+        # Get students enrolled in these lessons
+        from models.lesson import LessonProgress
+        from models.user import StudentProfile
+        
+        enrolled_students = db.session.query(User, StudentProfile, LessonProgress)\
+            .join(StudentProfile, User.id == StudentProfile.user_id)\
+            .join(LessonProgress, User.id == LessonProgress.user_id)\
+            .filter(LessonProgress.lesson_id.in_(lesson_ids))\
+            .distinct(User.id)\
+            .all()
+        
+        students_data = []
+        for student, profile, progress in enrolled_students:
+            # Calculate average progress for this student
+            student_progress = db.session.query(db.func.avg(LessonProgress.progress_percentage))\
+                .filter(
+                    LessonProgress.user_id == student.id,
+                    LessonProgress.lesson_id.in_(lesson_ids)
+                )\
+                .scalar() or 0
+            
+            # Get last active time
+            last_progress = LessonProgress.query\
+                .filter(
+                    LessonProgress.user_id == student.id,
+                    LessonProgress.lesson_id.in_(lesson_ids)
+                )\
+                .order_by(LessonProgress.last_accessed.desc())\
+                .first()
+            
+            # Calculate time difference
+            last_active = "Never"
+            if last_progress and last_progress.last_accessed:
+                time_diff = datetime.utcnow() - last_progress.last_accessed
+                if time_diff.days > 0:
+                    last_active = f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+                elif time_diff.seconds >= 3600:
+                    hours = time_diff.seconds // 3600
+                    last_active = f"{hours} hour{'s' if hours > 1 else ''} ago"
+                else:
+                    minutes = time_diff.seconds // 60
+                    last_active = f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+            
+            students_data.append({
+                'id': student.id,
+                'name': student.name,
+                'email': student.email,
+                'progress': round(student_progress, 1),
+                'lastActive': last_active,
+                'avatar': f"https://ui-avatars.com/api/?name={student.name.replace(' ', '+')}&background=random"
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': students_data
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in get_teacher_students: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@teacher_routes.route('/api/teacher/recent-activity', methods=['GET'])
+@jwt_required()
+def get_recent_activity():
+    """Get recent activity from students in teacher's courses"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user or user.role not in ['teacher', 'admin']:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        # Get teacher's lessons
+        lessons = Lesson.query.filter_by(created_by=current_user_id).all()
+        lesson_ids = [lesson.id for lesson in lessons]
+        
+        if not lesson_ids:
+            return jsonify({
+                'success': True,
+                'data': []
+            }), 200
+        
+        # Get recent quiz completions
+        from models.quiz import QuizSession
+        from models.lesson import LessonProgress
+        
+        recent_sessions = QuizSession.query\
+            .join(Lesson, QuizSession.lesson_id == Lesson.id)\
+            .join(User, QuizSession.user_id == User.id)\
+            .filter(
+                Lesson.created_by == current_user_id,
+                QuizSession.completed_at.isnot(None)
+            )\
+            .order_by(QuizSession.completed_at.desc())\
+            .limit(10)\
+            .all()
+        
+        # Get recent lesson completions
+        recent_completions = LessonProgress.query\
+            .join(Lesson, LessonProgress.lesson_id == Lesson.id)\
+            .join(User, LessonProgress.user_id == User.id)\
+            .filter(
+                Lesson.created_by == current_user_id,
+                LessonProgress.status == 'completed'
+            )\
+            .order_by(LessonProgress.completed_at.desc())\
+            .limit(10)\
+            .all()
+        
+        activities = []
+        
+        # Add quiz sessions
+        for session in recent_sessions:
+            student = User.query.get(session.user_id)
+            time_diff = datetime.utcnow() - session.completed_at
+            
+            if time_diff.days > 0:
+                time_ago = f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+            elif time_diff.seconds >= 3600:
+                hours = time_diff.seconds // 3600
+                time_ago = f"{hours} hour{'s' if hours > 1 else ''} ago"
+            else:
+                minutes = max(1, time_diff.seconds // 60)
+                time_ago = f"{minutes} min ago"
+            
+            activities.append({
+                'action': 'New assignment submitted',
+                'student': student.name if student else 'Unknown',
+                'time': time_ago,
+                'icon': 'FileText',
+                'timestamp': session.completed_at
+            })
+        
+        # Add lesson completions
+        for progress in recent_completions:
+            student = User.query.get(progress.user_id)
+            time_diff = datetime.utcnow() - progress.completed_at
+            
+            if time_diff.days > 0:
+                time_ago = f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+            elif time_diff.seconds >= 3600:
+                hours = time_diff.seconds // 3600
+                time_ago = f"{hours} hour{'s' if hours > 1 else ''} ago"
+            else:
+                minutes = max(1, time_diff.seconds // 60)
+                time_ago = f"{minutes} min ago"
+            
+            activities.append({
+                'action': 'Course completion',
+                'student': student.name if student else 'Unknown',
+                'time': time_ago,
+                'icon': 'Award',
+                'timestamp': progress.completed_at
+            })
+        
+        # Sort by timestamp and limit to 10
+        activities.sort(key=lambda x: x['timestamp'], reverse=True)
+        activities = activities[:10]
+        
+        # Remove timestamp from response
+        for activity in activities:
+            del activity['timestamp']
+        
+        return jsonify({
+            'success': True,
+            'data': activities
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in get_recent_activity: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 @teacher_routes.route('/api/teacher/analytics', methods=['GET'])
 @jwt_required()
 def get_analytics():
