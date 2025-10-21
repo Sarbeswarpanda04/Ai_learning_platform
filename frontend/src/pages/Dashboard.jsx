@@ -297,47 +297,55 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      {/* Header - Fixed with proper z-index */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            {/* Left Section - Logo and Welcome */}
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <motion.div
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.6 }}
-                className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center"
+                className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0"
               >
-                <GraduationCap className="w-7 h-7 text-white" />
+                <GraduationCap className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </motion.div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+              <div className="min-w-0 hidden md:block">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">
                   Welcome back, {user?.name || 'Student'}! 👋
                 </h1>
-                <p className="text-sm text-gray-600">Ready to continue your learning journey?</p>
+                <p className="text-xs sm:text-sm text-gray-600 hidden lg:block">Ready to continue your learning journey?</p>
+              </div>
+              <div className="min-w-0 md:hidden">
+                <h1 className="text-base font-bold text-gray-900 truncate">
+                  Hi, {user?.name?.split(' ')[0] || 'Student'}! 👋
+                </h1>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Streak Counter */}
+            {/* Right Section - Streak, Notifications, Profile */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              {/* Streak Counter - Responsive */}
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-xl shadow-lg"
+                className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-lg"
               >
-                <Flame className="w-5 h-5" />
-                <div>
-                  <div className="text-xs font-medium">Streak</div>
-                  <div className="text-lg font-bold">{dashboardData.streak} days</div>
+                <Flame className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <div className="hidden sm:block">
+                  <div className="text-xs font-medium leading-tight">Streak</div>
+                  <div className="text-base sm:text-lg font-bold leading-tight">{dashboardData.streak} days</div>
                 </div>
+                <div className="text-sm sm:hidden font-bold">{dashboardData.streak}d</div>
               </motion.div>
 
-              {/* Notifications */}
+              {/* Notifications - Hidden on smallest screens */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="relative p-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
+                className="relative p-2 sm:p-3 bg-gray-100 hover:bg-gray-200 rounded-lg sm:rounded-xl transition hidden xs:block"
               >
-                <Bell className="w-5 h-5 text-gray-700" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
+                <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-[10px] sm:text-xs rounded-full flex items-center justify-center font-semibold">
                   3
                 </span>
               </motion.button>
@@ -346,7 +354,7 @@ const Dashboard = () => {
               <Link to="/profile">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold"
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0"
                 >
                   {user?.name?.charAt(0).toUpperCase() || 'S'}
                 </motion.div>
@@ -356,15 +364,17 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-12 gap-6">
-          {/* Sidebar */}
+      {/* Main Content - Add padding-top to account for fixed header */}
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pt-20 sm:pt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+          {/* Sidebar - Responsive */}
           <motion.aside
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="col-span-12 lg:col-span-3"
+            className="lg:col-span-3"
           >
-            <div className="bg-white rounded-2xl shadow-lg p-4 sticky top-24">
+            {/* Desktop Sidebar */}
+            <div className="hidden lg:block bg-white rounded-2xl shadow-lg p-4 sticky top-28">
               <nav className="space-y-2">
                 {sidebarItems.map((item) => (
                   <motion.button
@@ -390,10 +400,36 @@ const Dashboard = () => {
                 ))}
               </nav>
             </div>
+
+            {/* Mobile Horizontal Tabs */}
+            <div className="lg:hidden bg-white rounded-xl shadow-lg p-2 overflow-x-auto">
+              <div className="flex gap-2 min-w-max">
+                {sidebarItems.map((item) => (
+                  <motion.button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    whileTap={{ scale: 0.95 }}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg whitespace-nowrap transition ${
+                      activeTab === item.id
+                        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
+                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100'
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{item.label}</span>
+                    {item.badge && (
+                      <span className="px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
           </motion.aside>
 
-          {/* Main Content */}
-          <main className="col-span-12 lg:col-span-9">
+          {/* Main Content - Responsive */}
+          <main className="lg:col-span-9">
             <AnimatePresence mode="wait">
               {/* Overview Tab */}
               {activeTab === 'overview' && (
@@ -404,8 +440,8 @@ const Dashboard = () => {
                   exit={{ opacity: 0, y: -20 }}
                   className="space-y-6"
                 >
-                  {/* Stats Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Stats Cards - Fully Responsive */}
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <StatCard
                       icon={BookOpen}
                       label="Completed Lessons"
@@ -800,16 +836,16 @@ const StatCard = ({ icon: Icon, label, value, color, trend }) => {
   return (
     <motion.div
       whileHover={{ y: -5, scale: 1.02 }}
-      className="bg-white rounded-2xl shadow-lg p-6"
+      className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 bg-gradient-to-r ${colors[color]} rounded-xl flex items-center justify-center`}>
-          <Icon className="w-6 h-6 text-white" />
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r ${colors[color]} rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0`}>
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
         </div>
-        <span className="text-green-600 text-sm font-medium">{trend}</span>
+        <span className="text-green-600 text-xs sm:text-sm font-medium">{trend}</span>
       </div>
-      <p className="text-gray-600 text-sm mb-1">{label}</p>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      <p className="text-gray-600 text-xs sm:text-sm mb-0.5 sm:mb-1 line-clamp-1">{label}</p>
+      <p className="text-xl sm:text-2xl font-bold text-gray-900">{value}</p>
     </motion.div>
   );
 };
