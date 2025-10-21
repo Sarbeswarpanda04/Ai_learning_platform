@@ -109,7 +109,7 @@ api.interceptors.response.use(
       }
 
       // Check if this is a non-critical ML endpoint - don't trigger logout
-      const nonCriticalEndpoints = ['/api/ml/', '/api/recommend', '/api/teacher/'];
+      const nonCriticalEndpoints = ['/api/ml/', '/api/recommend', '/api/teacher/', '/api/chat'];
       const isNonCritical = nonCriticalEndpoints.some(endpoint => 
         originalRequest.url?.includes(endpoint)
       );
