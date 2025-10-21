@@ -13,13 +13,24 @@ def init_db(app):
         from models.lesson import Lesson
         from models.quiz import Quiz, Attempt
         
-        # Create all tables
-        db.create_all()
-        print("Database initialized successfully!")
-        
-        # Create sample data if database is empty
-        if User.query.count() == 0:
-            create_sample_data()
+        try:
+            # Create all tables
+            db.create_all()
+            print("Database initialized successfully!")
+            
+            # Create sample data if database is empty
+            try:
+                user_count = User.query.count()
+                if user_count == 0:
+                    create_sample_data()
+                else:
+                    print(f"Database already has {user_count} users. Skipping sample data creation.")
+            except Exception as e:
+                print(f"Warning: Could not check for existing data: {str(e)}")
+                print("Skipping sample data creation to avoid errors.")
+        except Exception as e:
+            print(f"Error initializing database: {str(e)}")
+            print("Continuing without database initialization...")
 
 
 def create_sample_data():
