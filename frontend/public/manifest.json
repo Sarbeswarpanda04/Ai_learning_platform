@@ -1,0 +1,12 @@
+{
+  "name": "EduAI - AI Learning Platform",
+  "short_name": "EduAI",
+  "description": "AI-Driven Personalized Learning Platform for Engineering Students",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait-primary",
+  "icons": [],
+  "categories": ["education", "productivity"]
+}
