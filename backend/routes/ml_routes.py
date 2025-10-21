@@ -17,7 +17,7 @@ ml_bp = Blueprint('ml', __name__)
 def evaluate_performance():
     """Evaluate student performance using AI"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         # Get student's quiz attempts
@@ -54,7 +54,7 @@ def evaluate_performance():
 def recommend_lessons():
     """Get AI-powered lesson recommendations"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         user = User.query.get(user_id)
@@ -115,7 +115,7 @@ def recommend_lessons():
 def detect_learning_gaps():
     """Detect learning gaps in student performance"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         
         # Get all student attempts
         attempts = Attempt.query.filter_by(user_id=user_id).all()
@@ -149,7 +149,7 @@ def detect_learning_gaps():
 def get_adaptive_hint():
     """Get an adaptive hint for a specific question"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         quiz_id = data.get('quiz_id')
@@ -183,7 +183,7 @@ def get_adaptive_hint():
 def get_student_dashboard():
     """Get comprehensive student dashboard data with AI insights"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(user_id)
         
         if not user or user.role != 'student':
@@ -256,7 +256,7 @@ def get_student_dashboard():
 def get_teacher_analytics():
     """Get teacher analytics dashboard"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(user_id)
         
         if not user or user.role not in ['teacher', 'admin']:

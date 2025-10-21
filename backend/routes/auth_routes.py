@@ -173,10 +173,10 @@ def signup():
         if user.role == 'student' and user.student_profile:
             profile_dict = user.student_profile.to_dict()
         
-        # Generate tokens with user ID
+        # Generate tokens with user ID - identity must be a string
         print(f"Generating tokens for user ID: {user.id}")
-        access_token = create_access_token(identity=user.id)
-        refresh_token = create_refresh_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
+        refresh_token = create_refresh_token(identity=str(user.id))
         
         print(f"✅ Signup complete for {email}")
         return success_response({
@@ -220,9 +220,9 @@ def login():
         user.last_login = datetime.utcnow()
         db.session.commit()
         
-        # Generate tokens
-        access_token = create_access_token(identity=user.id)
-        refresh_token = create_refresh_token(identity=user.id)
+        # Generate tokens - identity must be a string
+        access_token = create_access_token(identity=str(user.id))
+        refresh_token = create_refresh_token(identity=str(user.id))
         
         # Get profile if student
         profile = None
@@ -303,9 +303,9 @@ def google_auth():
                 
                 db.session.commit()
             
-            # Generate tokens
-            access_token = create_access_token(identity=user.id)
-            refresh_token = create_refresh_token(identity=user.id)
+            # Generate tokens - identity must be a string
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
             
             return success_response({
                 'user': user.to_dict(),
@@ -327,7 +327,8 @@ def refresh():
     """Refresh access token"""
     try:
         user_id = get_jwt_identity()
-        access_token = create_access_token(identity=user_id)
+        # Ensure user_id is a string
+        access_token = create_access_token(identity=str(user_id))
         
         return success_response({
             'access_token': access_token
@@ -343,7 +344,8 @@ def get_current_user():
     """Get current user information"""
     try:
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        # Convert string ID back to integer for database query
+        user = User.query.get(int(user_id))
         
         if not user:
             return error_response('User not found', 404)

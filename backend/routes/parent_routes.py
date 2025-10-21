@@ -192,7 +192,7 @@ def get_student_dashboard(student_id):
 def set_parent_pin():
     """Student sets/updates parent PIN"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role != 'student':

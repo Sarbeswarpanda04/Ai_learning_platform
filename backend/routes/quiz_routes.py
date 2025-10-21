@@ -44,7 +44,7 @@ def get_quiz(quiz_id):
             return error_response('Quiz not found', 404)
         
         # Get user's previous attempts on this quiz
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         attempts = Attempt.query.filter_by(
             user_id=user_id,
             quiz_id=quiz_id
@@ -65,7 +65,7 @@ def get_quiz(quiz_id):
 def attempt_quiz(quiz_id):
     """Submit a quiz attempt"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         quiz = Quiz.query.get(quiz_id)
@@ -137,7 +137,7 @@ def attempt_quiz(quiz_id):
 def start_quiz_session():
     """Start a new quiz session for a lesson"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         lesson_id = data.get('lesson_id')
@@ -176,7 +176,7 @@ def start_quiz_session():
 def complete_quiz_session(session_id):
     """Complete a quiz session and calculate final score"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         
         session = QuizSession.query.get(session_id)
         if not session:
@@ -330,7 +330,7 @@ def delete_quiz(quiz_id):
 def sync_offline_attempts():
     """Sync offline quiz attempts"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         attempts_data = data.get('attempts', [])

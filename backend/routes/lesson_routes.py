@@ -69,7 +69,7 @@ def get_lesson(lesson_id):
         
         if not lesson.is_published:
             # Check if user is teacher/admin or creator
-            user_id = get_jwt_identity()
+            user_id = int(get_jwt_identity())  # Convert string to int
             user = User.query.get(user_id)
             if user.role not in ['teacher', 'admin'] and lesson.created_by != user_id:
                 return error_response('Lesson not found', 404)
@@ -78,7 +78,7 @@ def get_lesson(lesson_id):
         lesson.increment_views()
         
         # Get user's progress on this lesson
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         progress = LessonProgress.query.filter_by(
             user_id=user_id,
             lesson_id=lesson_id
@@ -99,7 +99,7 @@ def get_lesson(lesson_id):
 def create_lesson():
     """Create a new lesson (Teacher/Admin only)"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         # Validate required fields
@@ -141,7 +141,7 @@ def create_lesson():
 def update_lesson(lesson_id):
     """Update an existing lesson"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(user_id)
         
         lesson = Lesson.query.get(lesson_id)
@@ -191,7 +191,7 @@ def update_lesson(lesson_id):
 def delete_lesson(lesson_id):
     """Delete a lesson"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(user_id)
         
         lesson = Lesson.query.get(lesson_id)
@@ -218,7 +218,7 @@ def delete_lesson(lesson_id):
 def update_progress(lesson_id):
     """Update user's progress on a lesson"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         lesson = Lesson.query.get(lesson_id)
@@ -289,7 +289,7 @@ def get_subjects():
 def get_my_lessons():
     """Get lessons created by the current teacher"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())  # Convert string to int
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         

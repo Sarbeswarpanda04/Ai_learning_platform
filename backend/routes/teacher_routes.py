@@ -23,7 +23,7 @@ def allowed_file(filename):
 def get_teacher_courses():
     """Get all lessons created by the teacher (using lessons as courses)"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
@@ -51,7 +51,7 @@ def get_teacher_courses():
 def create_lesson():
     """Create a new lesson"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
@@ -93,7 +93,7 @@ def create_lesson():
 def upload_lesson_file():
     """Upload lesson file (document or video)"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
@@ -137,7 +137,7 @@ def upload_lesson_file():
 def generate_ai_summary():
     """Generate AI summary for lesson content"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
@@ -181,7 +181,7 @@ def generate_ai_summary():
 def get_enrolled_students():
     """Get all students (simplified - returns all students in the system)"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
@@ -213,7 +213,7 @@ def get_enrolled_students():
 def create_assignment():
     """Create a new assignment (simplified - returns success message)"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
@@ -252,7 +252,7 @@ def create_assignment():
 def get_dashboard_stats():
     """Get real-time dashboard statistics for teacher"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         print(f"📊 Dashboard stats requested by user ID: {current_user_id}")
         
         user = User.query.get(current_user_id)
@@ -364,7 +364,7 @@ def get_dashboard_stats():
 def get_teacher_students():
     """Get list of students enrolled in teacher's courses"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
@@ -447,7 +447,7 @@ def get_teacher_students():
 def get_recent_activity():
     """Get recent activity from students in teacher's courses"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
@@ -559,7 +559,7 @@ def get_recent_activity():
 def get_analytics():
     """Get analytics data for teacher's lessons"""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())  # Convert string to int
         user = User.query.get(current_user_id)
         
         if not user or user.role not in ['teacher', 'admin']:
