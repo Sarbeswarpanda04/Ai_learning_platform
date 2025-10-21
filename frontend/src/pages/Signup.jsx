@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuthStore } from '../utils/store';
 
+// Signup component - Direct registration without OTP
 const Signup = () => {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
