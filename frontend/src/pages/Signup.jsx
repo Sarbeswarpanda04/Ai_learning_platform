@@ -147,14 +147,24 @@ const Signup = () => {
       });
 
       if (response.data.success) {
-        toast.success('OTP sent to your email! 📧');
+        // Check if OTP is in response (SMTP not configured - testing mode)
+        const otpInResponse = response.data.data?.otp;
+        
+        if (otpInResponse) {
+          toast.success(`OTP generated: ${otpInResponse} (SMTP not configured)`, {
+            duration: 10000  // Show for 10 seconds
+          });
+        } else {
+          toast.success('OTP sent to your email! 📧');
+        }
         
         // Redirect to OTP verification page
         setTimeout(() => {
           navigate('/verify-otp', { 
             state: { 
               email: formData.email,
-              name: formData.name 
+              name: formData.name,
+              testOtp: otpInResponse  // Pass OTP for auto-fill in testing
             } 
           });
         }, 1000);

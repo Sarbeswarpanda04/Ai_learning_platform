@@ -17,6 +17,7 @@ const VerifyOTP = () => {
   const location = useLocation();
   const email = location.state?.email;
   const name = location.state?.name || 'User';
+  const testOtp = location.state?.testOtp;  // OTP from response (testing mode)
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,14 @@ const VerifyOTP = () => {
       return;
     }
 
+    // If test OTP is provided, auto-fill it (testing mode)
+    if (testOtp && testOtp.length === 6) {
+      setOtp(testOtp.split(''));
+      toast.info('Test OTP auto-filled. Click Verify to continue.', {
+        duration: 5000
+      });
+    }
+
     // Timer countdown
     const interval = setInterval(() => {
       setTimer((prev) => {
@@ -44,7 +53,7 @@ const VerifyOTP = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [email, navigate]);
+  }, [email, navigate, testOtp]);
 
   // Format timer display
   const formatTime = (seconds) => {
@@ -217,9 +226,17 @@ const VerifyOTP = () => {
                 Verify Your Email
               </h1>
               <p className="text-gray-600">
-                We sent a verification code to
+                {testOtp ? 'OTP has been generated' : 'We sent a verification code to'}
               </p>
               <p className="font-semibold text-indigo-600 mt-1">{email}</p>
+              
+              {testOtp && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ Testing Mode: SMTP not configured. OTP: <strong>{testOtp}</strong>
+                  </p>
+                </div>
+              )}
             </motion.div>
 
             {/* OTP Input */}
