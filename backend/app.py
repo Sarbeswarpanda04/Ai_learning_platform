@@ -28,45 +28,31 @@ def create_app(config_name=None):
         config_name = os.environ.get('FLASK_ENV', 'development')
     app.config.from_object(config[config_name])
     
-    # Initialize CORS
-    # In production, if CORS_ORIGINS is not set in env, allow Vercel domains
-    cors_origins = app.config.get('CORS_ORIGINS', [])
-    if config_name == 'production' and not os.environ.get('CORS_ORIGINS'):
-        # Allow Vercel and localhost by default
-        cors_origins = [
-            'https://ai-learning-platform-three.vercel.app',
-            'http://localhost:5173',
-            'http://localhost:5174'
-        ]
-    
+    # Initialize CORS - Simple and permissive for now
     CORS(app, 
-         resources={r"/api/*": {
-             "origins": cors_origins if cors_origins else "*",
-             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization", "Accept"],
-             "expose_headers": ["Content-Type", "Authorization"],
-             "supports_credentials": True,
-             "max_age": 3600
-         }})
+         resources={r"/*": {"origins": "*"}},
+         supports_credentials=False,
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
     
     # JWT
     jwt = JWTManager(app)
     
-    # Rate limiting (disabled in development to avoid Redis dependency)
-    if config_name != 'development':
-        limiter = Limiter(
-            app=app,
-            key_func=get_remote_address,
-            default_limits=["200 per day", "50 per hour"],
-            storage_uri=app.config['RATELIMIT_STORAGE_URL']
-        )
+    # Disable rate limiting and security headers for debugging
+    # TODO: Re-enable after deployment is stable
+    # if config_name != 'development':
+    #     limiter = Limiter(
+    #         app=app,
+    #         key_func=get_remote_address,
+    #         default_limits=["200 per day", "50 per hour"],
+    #         storage_uri=app.config['RATELIMIT_STORAGE_URL']
+    #     )
     
-    # Security headers (disable in development for easier testing)
-    if config_name == 'production':
-        Talisman(app, 
-                force_https=True,
-                strict_transport_security=True,
-                content_security_policy=None)
+    # if config_name == 'production':
+    #     Talisman(app, 
+    #             force_https=True,
+    #             strict_transport_security=True,
+    #             content_security_policy=None)
     
     # Initialize database
     init_db(app)
