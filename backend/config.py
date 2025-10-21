@@ -22,7 +22,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     
     # CORS Configuration
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5174,http://192.168.29.166:5173,http://192.168.29.166:5174').split(',')
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5174,http://192.168.29.166:5173,http://192.168.29.166:5174,https://ai-learning-platform-three.vercel.app').split(',')
     
     # Upload Configuration
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
