@@ -82,12 +82,19 @@ const TeacherDashboard = () => {
     try {
       // Fetch courses
       const coursesRes = await lessonAPI.getLessons({ teacher: true });
-      setCourses(coursesRes.data.data || []);
+      console.log('Courses API response:', coursesRes.data);
+      
+      // Ensure courses is always an array
+      const coursesData = coursesRes.data?.data || coursesRes.data?.lessons || [];
+      const coursesArray = Array.isArray(coursesData) ? coursesData : [];
+      
+      console.log('Processed courses:', coursesArray);
+      setCourses(coursesArray);
 
       // Mock stats for MVP (you can replace with real API)
       setStats({
         totalStudents: 45,
-        activeCourses: coursesRes.data.data?.length || 5,
+        activeCourses: coursesArray.length || 5,
         pendingAssignments: 12,
         newMessages: 8
       });
@@ -100,12 +107,15 @@ const TeacherDashboard = () => {
       ]);
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error fetching courses:', error);
       console.error('Error details:', {
         status: error.response?.status,
         message: error.response?.data?.message,
         hasToken: !!localStorage.getItem('accessToken')
       });
+      
+      // Set empty array on error to prevent .map() errors
+      setCourses([]);
       
       // Don't show error toast for 401 (will auto-redirect to login)
       if (error.response?.status !== 401) {
@@ -583,65 +593,86 @@ const CoursesSection = ({ courses, theme }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map((course, index) => (
-          <motion.div
-            key={course.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ scale: 1.03, y: -5 }}
-            className={`${
-              theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-            } rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer`}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-xl">
-                <BookOpen className="w-6 h-6 text-white" />
+        {Array.isArray(courses) && courses.length > 0 ? (
+          courses.map((course, index) => (
+            <motion.div
+              key={course.id || index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ scale: 1.03, y: -5 }}
+              className={`${
+                theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+              } rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-xl">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex gap-2">
+                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                  <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                  <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </button>
-              </div>
-            </div>
 
-            <h3 className={`text-lg font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              {course.title}
+              <h3 className={`text-lg font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {course.title || 'Untitled Course'}
+              </h3>
+              <p className="text-gray-500 text-sm mb-4 line-clamp-2">
+                {course.description || course.content?.substring(0, 100) || 'No description available'}
+              </p>
+
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-500">45 students enrolled</span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mb-2">
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-500">Course Progress</span>
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    65%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: '65%' }}
+                    transition={{ duration: 1, delay: 0.2 }}
+                    className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-12">
+            <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              No courses yet
             </h3>
-            <p className="text-gray-500 text-sm mb-4 line-clamp-2">
-              {course.description || 'No description available'}
+            <p className="text-gray-500 mb-4">
+              Start by creating your first course
             </p>
-
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-500">45 students enrolled</span>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="mb-2">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-500">Course Progress</span>
-                <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  65%
-                </span>
-              </div>
-              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: '65%' }}
-                  transition={{ duration: 1, delay: 0.2 }}
-                  className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500"
-                />
-              </div>
-            </div>
-          </motion.div>
-        ))}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => window.location.href = '/teacher/create-lesson'}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition"
+            >
+              <Plus className="w-5 h-5" />
+              Create Your First Course
+            </motion.button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -649,6 +680,9 @@ const CoursesSection = ({ courses, theme }) => {
 
 // Students Section Component
 const StudentsSection = ({ students, theme }) => {
+  // Ensure students is always an array
+  const studentsList = Array.isArray(students) ? students : [];
+  
   return (
     <div>
       <h2 className={`text-2xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
@@ -656,19 +690,20 @@ const StudentsSection = ({ students, theme }) => {
       </h2>
 
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-lg overflow-hidden`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Student</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Email</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Progress</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Last Active</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {students.map((student, index) => (
+        {studentsList.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Student</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Progress</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Last Active</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {studentsList.map((student, index) => (
                 <motion.tr
                   key={student.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -711,6 +746,17 @@ const StudentsSection = ({ students, theme }) => {
             </tbody>
           </table>
         </div>
+        ) : (
+          <div className="text-center py-12">
+            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              No students enrolled yet
+            </h3>
+            <p className="text-gray-500">
+              Students will appear here once they enroll in your courses
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
