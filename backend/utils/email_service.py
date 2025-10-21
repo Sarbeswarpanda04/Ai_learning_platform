@@ -26,8 +26,12 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
         api_key = os.environ.get('BREVO_API_KEY')
         sender_email = os.environ.get('BREVO_SENDER_EMAIL') or os.environ.get('SMTP_EMAIL', 'app.ailearn@gmail.com')
         
+        print(f"🔍 Checking Brevo credentials...")
+        print(f"   API Key present: {bool(api_key)}")
+        print(f"   Sender email: {sender_email}")
+        
         if api_key:
-            print(f"Attempting to send email via Brevo API to {to_email}...")
+            print(f"📧 Attempting to send email via Brevo API to {to_email}...")
             
             # Brevo API endpoint
             url = "https://api.brevo.com/v3/smtp/email"
@@ -55,16 +59,20 @@ def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
                 "htmlContent": html_content
             }
             
+            print(f"📤 Sending request to Brevo API...")
             # Send request
             response = requests.post(url, json=payload, headers=headers, timeout=10)
+            
+            print(f"📬 Brevo API Response: Status={response.status_code}")
             
             if response.status_code in [200, 201]:
                 print(f"✅ Email sent successfully to {to_email} via Brevo API")
                 return True
             else:
-                print(f"⚠️ Brevo API failed. Status: {response.status_code}, Response: {response.text}")
+                print(f"⚠️ Brevo API failed. Status: {response.status_code}")
+                print(f"   Response: {response.text}")
         else:
-            print("⚠️ Brevo API key not configured, trying SMTP...")
+            print("⚠️ BREVO_API_KEY not found in environment, trying SMTP...")
         
     except Exception as e:
         print(f"⚠️ Brevo API error: {str(e)}, trying SMTP fallback...")

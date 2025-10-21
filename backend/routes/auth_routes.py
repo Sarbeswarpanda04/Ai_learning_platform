@@ -145,13 +145,12 @@ def signup():
                 'message': 'OTP sent to your email. Please verify to complete registration.'
             }, 'OTP sent successfully', 200)
         else:
-            # SMTP not configured - log OTP for testing
-            print(f"⚠️  SMTP NOT CONFIGURED - OTP for {email}: {otp}")
-            return success_response({
-                'email': email,
-                'otp': otp,  # Include OTP in response for testing (REMOVE IN PRODUCTION!)
-                'message': 'OTP generated (SMTP not configured). Check server logs or use OTP from response.'
-            }, 'OTP generated - email not sent (configure SMTP)', 200)
+            # Email failed - return error
+            print(f"❌ Failed to send OTP email to {email}")
+            return error_response(
+                'Failed to send OTP email. Please check your email address or try again later.', 
+                500
+            )
         
     except Exception as e:
         print(f"❌ Signup error: {str(e)}")
