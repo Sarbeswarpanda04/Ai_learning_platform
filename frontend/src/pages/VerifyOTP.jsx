@@ -36,8 +36,9 @@ const VerifyOTP = () => {
     // If test OTP is provided, auto-fill it (testing mode)
     if (testOtp && testOtp.length === 6) {
       setOtp(testOtp.split(''));
-      toast.info('Test OTP auto-filled. Click Verify to continue.', {
-        duration: 5000
+      toast('Test OTP auto-filled. Click Verify to continue.', {
+        duration: 5000,
+        icon: 'ℹ️'
       });
     }
 
