@@ -18,54 +18,96 @@ def generate_otp(length=6):
 def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
     """
     Send email using Brevo API (formerly Sendinblue)
+    Falls back to SMTP if API fails
     """
+    # Try Brevo API first
     try:
         # Brevo API configuration
-        api_key = os.environ.get('BREVO_API_KEY') or os.environ.get('SMTP_PASSWORD')
+        api_key = os.environ.get('BREVO_API_KEY')
         sender_email = os.environ.get('BREVO_SENDER_EMAIL') or os.environ.get('SMTP_EMAIL', 'app.ailearn@gmail.com')
         
-        if not api_key:
-            print("Warning: Brevo API key not configured (BREVO_API_KEY)")
-            return False
-        
-        # Brevo API endpoint
-        url = "https://api.brevo.com/v3/smtp/email"
-        
-        # Request headers
-        headers = {
-            "accept": "application/json",
-            "api-key": api_key,
-            "content-type": "application/json"
-        }
-        
-        # Email payload
-        payload = {
-            "sender": {
-                "name": sender_name,
-                "email": sender_email
-            },
-            "to": [
-                {
-                    "email": to_email,
-                    "name": to_email.split('@')[0]
-                }
-            ],
-            "subject": subject,
-            "htmlContent": html_content
-        }
-        
-        # Send request
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        
-        if response.status_code in [200, 201]:
-            print(f"Email sent successfully to {to_email} via Brevo")
-            return True
+        if api_key:
+            print(f"Attempting to send email via Brevo API to {to_email}...")
+            
+            # Brevo API endpoint
+            url = "https://api.brevo.com/v3/smtp/email"
+            
+            # Request headers
+            headers = {
+                "accept": "application/json",
+                "api-key": api_key,
+                "content-type": "application/json"
+            }
+            
+            # Email payload
+            payload = {
+                "sender": {
+                    "name": sender_name,
+                    "email": sender_email
+                },
+                "to": [
+                    {
+                        "email": to_email,
+                        "name": to_email.split('@')[0]
+                    }
+                ],
+                "subject": subject,
+                "htmlContent": html_content
+            }
+            
+            # Send request
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            
+            if response.status_code in [200, 201]:
+                print(f"✅ Email sent successfully to {to_email} via Brevo API")
+                return True
+            else:
+                print(f"⚠️ Brevo API failed. Status: {response.status_code}, Response: {response.text}")
         else:
-            print(f"Failed to send email. Status: {response.status_code}, Response: {response.text}")
-            return False
+            print("⚠️ Brevo API key not configured, trying SMTP...")
         
     except Exception as e:
-        print(f"Failed to send email via Brevo: {str(e)}")
+        print(f"⚠️ Brevo API error: {str(e)}, trying SMTP fallback...")
+    
+    # Fallback to SMTP if API fails or not configured
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
+        smtp_server = os.environ.get('SMTP_SERVER', 'smtp-relay.brevo.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_login = os.environ.get('SMTP_LOGIN')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        sender_email = os.environ.get('SMTP_EMAIL', 'app.ailearn@gmail.com')
+        
+        if not smtp_login or not smtp_password:
+            print("❌ SMTP credentials not configured")
+            return False
+        
+        print(f"Attempting to send email via SMTP ({smtp_server}:{smtp_port}) to {to_email}...")
+        
+        # Create message
+        message = MIMEMultipart("alternative")
+        message["Subject"] = subject
+        message["From"] = f"{sender_name} <{sender_email}>"
+        message["To"] = to_email
+        
+        # Add HTML content
+        html_part = MIMEText(html_content, "html")
+        message.attach(html_part)
+        
+        # Send email with timeout
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+            server.starttls()
+            server.login(smtp_login, smtp_password)
+            server.sendmail(sender_email, to_email, message.as_string())
+        
+        print(f"✅ Email sent successfully to {to_email} via SMTP")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to send email via SMTP: {str(e)}")
         return False
 
 def send_otp_email(email, otp, name="User"):
