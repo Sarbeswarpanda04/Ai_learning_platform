@@ -1,14 +1,12 @@
 """
-Email Service for sending OTP and notifications
+Email Service for sending OTP and notifications using Brevo (formerly Sendinblue)
 """
 import os
-import smtplib
 import random
 import string
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from functools import wraps
+import requests
 
 # Store OTPs in memory (in production, use Redis or database)
 otp_store = {}
@@ -17,42 +15,57 @@ def generate_otp(length=6):
     """Generate a random OTP"""
     return ''.join(random.choices(string.digits, k=length))
 
-def send_email(to_email, subject, html_content):
+def send_email(to_email, subject, html_content, sender_name="EduAI Platform"):
     """
-    Send email using Gmail SMTP
+    Send email using Brevo API (formerly Sendinblue)
     """
     try:
-        # Gmail SMTP configuration
-        smtp_server = "smtp.gmail.com"
-        smtp_port = 587
-        sender_email = os.environ.get('SMTP_EMAIL')
-        sender_password = os.environ.get('SMTP_PASSWORD')
+        # Brevo API configuration
+        api_key = os.environ.get('BREVO_API_KEY') or os.environ.get('SMTP_PASSWORD')
+        sender_email = os.environ.get('BREVO_SENDER_EMAIL') or os.environ.get('SMTP_EMAIL', 'app.ailearn@gmail.com')
         
-        if not sender_email or not sender_password:
-            print("Warning: SMTP credentials not configured")
+        if not api_key:
+            print("Warning: Brevo API key not configured (BREVO_API_KEY)")
             return False
         
-        # Create message
-        message = MIMEMultipart("alternative")
-        message["Subject"] = subject
-        message["From"] = f"EduAI Platform <{sender_email}>"
-        message["To"] = to_email
+        # Brevo API endpoint
+        url = "https://api.brevo.com/v3/smtp/email"
         
-        # Add HTML content
-        html_part = MIMEText(html_content, "html")
-        message.attach(html_part)
+        # Request headers
+        headers = {
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json"
+        }
         
-        # Send email with timeout to prevent hanging
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=5) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, to_email, message.as_string())
+        # Email payload
+        payload = {
+            "sender": {
+                "name": sender_name,
+                "email": sender_email
+            },
+            "to": [
+                {
+                    "email": to_email,
+                    "name": to_email.split('@')[0]
+                }
+            ],
+            "subject": subject,
+            "htmlContent": html_content
+        }
         
-        print(f"Email sent successfully to {to_email}")
-        return True
+        # Send request
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        
+        if response.status_code in [200, 201]:
+            print(f"Email sent successfully to {to_email} via Brevo")
+            return True
+        else:
+            print(f"Failed to send email. Status: {response.status_code}, Response: {response.text}")
+            return False
         
     except Exception as e:
-        print(f"Failed to send email: {str(e)}")
+        print(f"Failed to send email via Brevo: {str(e)}")
         return False
 
 def send_otp_email(email, otp, name="User"):
