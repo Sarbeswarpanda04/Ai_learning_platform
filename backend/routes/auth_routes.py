@@ -248,8 +248,14 @@ def verify_otp_endpoint():
         access_token = create_access_token(identity=user.id)
         refresh_token = create_refresh_token(identity=user.id)
         
+        # Get profile data if student
+        profile_dict = None
+        if user.role == 'student' and user.student_profile:
+            profile_dict = user.student_profile.to_dict()
+        
         return success_response({
             'user': user.to_dict(),
+            'profile': profile_dict,
             'access_token': access_token,
             'refresh_token': refresh_token
         }, 'Registration completed successfully!', 201)
