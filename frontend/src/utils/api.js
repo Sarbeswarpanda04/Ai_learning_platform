@@ -65,6 +65,17 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      // Check if this is a non-critical ML endpoint - don't trigger logout
+      const nonCriticalEndpoints = ['/api/ml/', '/api/recommend'];
+      const isNonCritical = nonCriticalEndpoints.some(endpoint => 
+        originalRequest.url?.includes(endpoint)
+      );
+
+      if (isNonCritical) {
+        console.warn(`Non-critical endpoint ${originalRequest.url} failed with 401 - not triggering logout`);
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
       const refreshToken = localStorage.getItem('refreshToken');
@@ -91,7 +102,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        console.log('Attempting token refresh');
+        console.log('Attempting token refresh for critical endpoint');
         
         // Create a new axios instance to avoid infinite loop
         const refreshResponse = await axios.post(
@@ -124,12 +135,15 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
         
-        // Only logout if refresh explicitly failed (not on network errors)
+        // Only logout if refresh explicitly failed with 401 (not on network errors)
         if (refreshError.response?.status === 401) {
+          console.error('Refresh token expired, logging out');
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('auth-storage');
           window.location.href = '/login';
+        } else {
+          console.warn('Token refresh failed but not forcing logout (network error?)');
         }
         
         return Promise.reject(refreshError);

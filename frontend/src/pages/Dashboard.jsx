@@ -101,13 +101,39 @@ const Dashboard = () => {
       // Get user data from localStorage if not in state
       const storedUser = user || JSON.parse(localStorage.getItem('user') || '{}');
       
-      // Fetch multiple endpoints
-      const [coursesRes, progressRes] = await Promise.all([
-        api.get('/api/lessons'),
-        api.get('/api/ml/student/dashboard').catch(err => ({ data: {} }))
-      ]);
+      console.log('Fetching dashboard data for user:', storedUser?.id);
       
-      // Fetch recommendations separately (POST request)
+      // Fetch courses first (critical)
+      let coursesArray = [];
+      try {
+        const coursesRes = await api.get('/api/lessons');
+        console.log('Courses fetched successfully:', coursesRes.data);
+        
+        // Extract courses data - handle different response formats
+        if (coursesRes.data.data && Array.isArray(coursesRes.data.data)) {
+          coursesArray = coursesRes.data.data;
+        } else if (Array.isArray(coursesRes.data)) {
+          coursesArray = coursesRes.data;
+        } else if (coursesRes.data.lessons && Array.isArray(coursesRes.data.lessons)) {
+          coursesArray = coursesRes.data.lessons;
+        }
+      } catch (coursesError) {
+        console.error('Failed to fetch courses (non-fatal):', coursesError.message);
+        // Don't throw - allow dashboard to load with empty courses
+      }
+      
+      // Fetch progress data (non-critical)
+      let progressData = {};
+      try {
+        const progressRes = await api.get('/api/ml/student/dashboard');
+        progressData = progressRes.data || {};
+        console.log('Progress data fetched:', progressData);
+      } catch (progressError) {
+        console.warn('ML progress endpoint not available (non-fatal):', progressError.message);
+        // Continue without progress data
+      }
+      
+      // Fetch recommendations (non-critical)
       let recommendationsData = [];
       if (storedUser?.id) {
         try {
@@ -115,30 +141,23 @@ const Dashboard = () => {
             user_id: storedUser.id 
           });
           recommendationsData = recommendationsRes.data?.recommendations || [];
-        } catch (err) {
-          console.log('Recommendations not available:', err.message);
+          console.log('Recommendations fetched:', recommendationsData.length);
+        } catch (recError) {
+          console.warn('Recommendations not available (non-fatal):', recError.message);
+          // Continue without recommendations
         }
       }
 
-      // Extract courses data - handle different response formats
-      let coursesArray = [];
-      if (coursesRes.data.data && Array.isArray(coursesRes.data.data)) {
-        coursesArray = coursesRes.data.data;
-      } else if (Array.isArray(coursesRes.data)) {
-        coursesArray = coursesRes.data;
-      } else if (coursesRes.data.lessons && Array.isArray(coursesRes.data.lessons)) {
-        coursesArray = coursesRes.data.lessons;
-      }
-
-      console.log('Courses loaded:', { 
-        count: coursesArray.length, 
-        isArray: Array.isArray(coursesArray) 
+      console.log('Dashboard data loaded successfully:', { 
+        coursesCount: coursesArray.length,
+        hasProgress: !!progressData,
+        recommendationsCount: recommendationsData.length
       });
 
       // Mock data for demonstration (replace with real data)
       setDashboardData({
         courses: coursesArray,
-        progress: progressRes.data || {},
+        progress: progressData || {},
         recommendations: recommendationsData.length > 0 ? recommendationsData : [
           {
             id: 1,
@@ -186,8 +205,30 @@ const Dashboard = () => {
       });
       
     } catch (error) {
-      console.error('Error fetching dashboard:', error);
-      toast.error('Failed to load dashboard data');
+      console.error('Critical error loading dashboard:', error);
+      
+      // Only show error toast if it's not a 401 (which would trigger redirect)
+      if (error.response?.status !== 401) {
+        toast.error('Some dashboard features are unavailable. Core features still work!');
+      }
+      
+      // Set minimal dashboard data so page doesn't crash
+      setDashboardData({
+        courses: [],
+        progress: {},
+        recommendations: [],
+        stats: {
+          completedLessons: 0,
+          totalLessons: 0,
+          hoursStudied: 0,
+          averageScore: 0,
+          rank: 0,
+          totalUsers: 0
+        },
+        recentActivity: [],
+        badges: [],
+        streak: 0
+      });
     } finally {
       setLoading(false);
     }
