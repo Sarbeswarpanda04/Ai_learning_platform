@@ -18,6 +18,7 @@ from routes.quiz_routes import quiz_bp
 from routes.ml_routes import ml_bp
 from routes.teacher_routes import teacher_routes
 from routes.admin_routes import admin_bp
+from routes.parent_routes import parent_routes
 
 def create_app(config_name=None):
     """Application factory function"""
@@ -90,6 +91,7 @@ def create_app(config_name=None):
     app.register_blueprint(ml_bp, url_prefix='/api/ml')
     app.register_blueprint(teacher_routes)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(parent_routes)
     
     # Error handlers
     @app.errorhandler(404)

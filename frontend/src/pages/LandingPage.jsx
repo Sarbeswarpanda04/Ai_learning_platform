@@ -19,14 +19,17 @@ import {
   Star,
   Users,
   TrendingUp,
-  Award
+  Award,
+  UserCircle
 } from 'lucide-react';
 import { useThemeStore } from '../utils/store';
+import ParentLoginModal from '../components/ParentLoginModal';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useThemeStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [parentModalOpen, setParentModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
@@ -189,7 +192,7 @@ const LandingPage = () => {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="hidden md:flex items-center space-x-6">
               <a href="#features" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
                 Features
               </a>
@@ -209,6 +212,14 @@ const LandingPage = () => {
                 ) : (
                   <Moon className="w-5 h-5 text-gray-700" />
                 )}
+              </button>
+
+              <button
+                onClick={() => setParentModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full transition-all duration-300"
+              >
+                <UserCircle className="w-5 h-5" />
+                <span className="font-medium">Parent Login</span>
               </button>
 
               <Link
@@ -251,6 +262,16 @@ const LandingPage = () => {
               <a href="#testimonials" className="block text-gray-700 dark:text-gray-300 hover:text-indigo-600">
                 Testimonials
               </a>
+              <button
+                onClick={() => {
+                  setParentModalOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-6 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full transition"
+              >
+                <UserCircle className="w-5 h-5" />
+                <span>Parent Login</span>
+              </button>
               <Link to="/login" className="block text-gray-700 dark:text-gray-300 hover:text-indigo-600">
                 Login
               </Link>
@@ -737,6 +758,12 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+
+      {/* Parent Login Modal */}
+      <ParentLoginModal 
+        isOpen={parentModalOpen} 
+        onClose={() => setParentModalOpen(false)} 
+      />
     </div>
   );
 };

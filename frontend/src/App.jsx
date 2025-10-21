@@ -15,6 +15,7 @@ import QuizPage from './pages/QuizPage';
 import ProgressPage from './pages/ProgressPage';
 import TeacherDashboard from './pages/TeacherDashboard';
 import CreateLesson from './pages/teacher/CreateLesson';
+import ParentDashboard from './pages/ParentDashboard';
 
 // Components
 import Navbar from './components/Navbar';
@@ -172,6 +173,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Parent Routes - No authentication required, uses separate parent session */}
+            <Route path="/parent/dashboard" element={<ParentDashboard />} />
 
             {/* Default Routes */}
             <Route path="*" element={<Navigate to="/" />} />
