@@ -15,7 +15,11 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     
     # Database Configuration
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///learning_platform.db'
+    DATABASE_URL = os.environ.get('DATABASE_URL') or 'sqlite:///learning_platform.db'
+    # Fix for Render's postgres:// URL (SQLAlchemy needs postgresql://)
+    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
     
     # CORS Configuration
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://localhost:5174,http://192.168.29.166:5173,http://192.168.29.166:5174').split(',')
