@@ -89,62 +89,19 @@ const Login = () => {
       if (response.data.success || response.data.access_token) {
         const { user, profile, access_token, refresh_token } = response.data.data || response.data;
         
-        console.log('✅ Login successful!');
-        console.log('📦 Response data:', { 
-          user: user?.name, 
-          role: user?.role,
-          hasAccessToken: !!access_token,
-          hasRefreshToken: !!refresh_token,
-          accessTokenPreview: access_token ? access_token.substring(0, 30) + '...' : 'none',
-          refreshTokenPreview: refresh_token ? refresh_token.substring(0, 30) + '...' : 'none'
-        });
-        
-        // Save tokens to localStorage first
-        localStorage.setItem('accessToken', access_token);
-        if (refresh_token) {
-          localStorage.setItem('refreshToken', refresh_token);
-        }
-        
-        console.log('💾 Tokens saved to localStorage');
-
-        // Update auth store
+        // Update auth store immediately (this also saves to localStorage)
         setAuth(user, profile, access_token, refresh_token);
         
-        console.log('🔐 Auth store updated');
-
-        // Verify auth state was set
-        setTimeout(() => {
-          const authStorage = localStorage.getItem('auth-storage');
-          const savedAccessToken = localStorage.getItem('accessToken');
-          const savedRefreshToken = localStorage.getItem('refreshToken');
-          
-          console.log('✅ Verification after 100ms:');
-          console.log('  - auth-storage exists:', !!authStorage);
-          console.log('  - accessToken exists:', !!savedAccessToken);
-          console.log('  - refreshToken exists:', !!savedRefreshToken);
-          
-          if (authStorage) {
-            try {
-              const parsed = JSON.parse(authStorage);
-              console.log('  - Stored user:', parsed.state?.user?.name);
-              console.log('  - Stored isAuthenticated:', parsed.state?.isAuthenticated);
-            } catch (e) {
-              console.error('  - Failed to parse auth-storage:', e);
-            }
-          }
-        }, 100);
-
-        toast.success('Welcome back! 🎉');
+        toast.success(`Welcome back, ${user.name}! 🎉`);
         
-        // Redirect based on role with longer delay to ensure state persistence
+        // Redirect based on role with short delay
         setTimeout(() => {
-          console.log('Redirecting user with role:', user.role);
           if (user.role === 'teacher' || user.role === 'admin') {
             navigate('/teacher/dashboard');
           } else {
             navigate('/dashboard');
           }
-        }, 1500);
+        }, 500);
       }
     } catch (error) {
       console.error('Login error:', error);

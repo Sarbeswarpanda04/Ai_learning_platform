@@ -16,6 +16,15 @@ export const useAuthStore = create(
 
       setAuth: (user, profile, accessToken, refreshToken) => {
         console.log('Setting auth state:', { user: user?.name, isAuthenticated: true });
+        
+        // Also save tokens directly to localStorage as backup
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken);
+        }
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
+        
         set({
           user,
           profile,
