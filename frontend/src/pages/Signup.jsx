@@ -201,9 +201,9 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 relative overflow-hidden flex flex-col">
       {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{ 
             y: [0, -30, 0],
@@ -211,7 +211,7 @@ const Signup = () => {
             rotate: [0, 90, 0]
           }}
           transition={{ duration: 20, repeat: Infinity }}
-          className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full mix-blend-overlay filter blur-xl opacity-20"
+          className="absolute top-20 left-10 w-48 h-48 md:w-72 md:h-72 bg-white rounded-full mix-blend-overlay filter blur-xl opacity-20"
         />
         <motion.div
           animate={{ 
@@ -220,21 +220,21 @@ const Signup = () => {
             rotate: [0, -90, 0]
           }}
           transition={{ duration: 25, repeat: Infinity }}
-          className="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-xl opacity-20"
+          className="absolute bottom-20 right-10 w-64 h-64 md:w-96 md:h-96 bg-white rounded-full mix-blend-overlay filter blur-xl opacity-20"
         />
         
-        {/* Floating Icons */}
+        {/* Floating Icons - Hidden on mobile for performance */}
         <motion.div
           animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }}
           transition={{ duration: 5, repeat: Infinity }}
-          className="absolute top-40 left-1/4 text-white opacity-10"
+          className="absolute top-40 left-1/4 text-white opacity-10 hidden md:block"
         >
           <BookOpen size={80} />
         </motion.div>
         <motion.div
           animate={{ y: [0, 20, 0], rotate: [0, -10, 0] }}
           transition={{ duration: 6, repeat: Infinity }}
-          className="absolute bottom-40 right-1/4 text-white opacity-10"
+          className="absolute bottom-40 right-1/4 text-white opacity-10 hidden md:block"
         >
           <Sparkles size={60} />
         </motion.div>
@@ -244,31 +244,33 @@ const Signup = () => {
       <motion.header
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="relative z-10 container mx-auto px-6 py-6"
+        className="relative z-10 w-full px-4 sm:px-6 py-4 md:py-6"
       >
-        <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2 group">
             <motion.div
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.6 }}
             >
-              <Brain className="w-8 h-8 text-white" />
+              <Brain className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
             </motion.div>
-            <span className="text-2xl font-bold text-white">EduAI</span>
+            <span className="text-xl sm:text-2xl font-bold text-white">EduAI</span>
           </Link>
 
           <Link
             to="/login"
-            className="text-white hover:text-white/80 transition flex items-center gap-2"
+            className="text-white hover:text-white/80 transition flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
           >
-            Already have an account? <span className="font-semibold">Login</span>
+            <span className="hidden sm:inline">Already have an account?</span>
+            <span className="font-semibold">Login</span>
           </Link>
         </div>
       </motion.header>
 
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-6 py-12">
-        <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+      <div className="relative z-10 flex-1 w-full px-4 sm:px-6 py-6 sm:py-8 lg:py-12 overflow-y-auto">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-12 items-start lg:items-center">
           {/* Left Section - Illustration */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -350,25 +352,26 @@ const Signup = () => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
+            className="w-full"
           >
-            <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 md:p-12 border border-white/20">
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl lg:rounded-3xl shadow-2xl p-6 sm:p-8 lg:p-12 border border-white/20 max-w-2xl mx-auto lg:mx-0">
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
               >
                 {/* Form Header */}
-                <motion.div variants={itemVariants} className="text-center mb-8">
-                  <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                <motion.div variants={itemVariants} className="text-center mb-6 sm:mb-8">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
                     Create Your Free Account 🚀
                   </h1>
-                  <p className="text-gray-600">
+                  <p className="text-sm sm:text-base text-gray-600">
                     Join EduAI and start learning smarter with personalized insights
                   </p>
                 </motion.div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                   {/* Full Name */}
                   <motion.div variants={itemVariants}>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -526,7 +529,7 @@ const Signup = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       I am a
                     </label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       {userTypes.map((type) => (
                         <motion.button
                           key={type.value}
@@ -534,14 +537,14 @@ const Signup = () => {
                           onClick={() => setFormData(prev => ({ ...prev, role: type.value }))}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                          className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 ${
                             formData.role === type.value
                               ? 'border-indigo-600 bg-indigo-50 shadow-lg'
                               : 'border-gray-200 hover:border-indigo-300'
                           }`}
                         >
-                          <div className="text-3xl mb-2">{type.emoji}</div>
-                          <div className="text-sm font-medium text-gray-900">{type.label}</div>
+                          <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{type.emoji}</div>
+                          <div className="text-xs sm:text-sm font-medium text-gray-900">{type.label}</div>
                         </motion.button>
                       ))}
                     </div>
@@ -606,7 +609,7 @@ const Signup = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="text-center mt-8 text-white/80 text-sm"
+              className="text-center mt-6 sm:mt-8 text-white/80 text-xs sm:text-sm px-4"
             >
               © 2025 EduAI — Learn. Adapt. Succeed.
             </motion.div>
