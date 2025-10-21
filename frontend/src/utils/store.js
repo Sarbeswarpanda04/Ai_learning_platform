@@ -31,6 +31,7 @@ export const useAuthStore = create(
           accessToken,
           refreshToken,
           isAuthenticated: true,
+          loginTime: Date.now(), // Track login time to prevent immediate logout
         });
       },
 
@@ -47,6 +48,7 @@ export const useAuthStore = create(
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          loginTime: null,
         });
       },
     }),
@@ -59,6 +61,7 @@ export const useAuthStore = create(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
+        loginTime: state.loginTime,
       }),
     }
   )
