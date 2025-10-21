@@ -39,16 +39,17 @@ def create_app(config_name=None):
     # JWT
     jwt = JWTManager(app)
 
-    # Development-only request logger for Authorization header
-    if app.config.get('DEBUG'):
-        @app.before_request
-        def _log_auth_header():
-            try:
-                auth = str(request.headers.get('Authorization'))
-                if auth and auth != 'None':
-                    print(f"[DEBUG] Incoming Authorization header: {auth[:100]}")
-            except Exception:
-                pass
+    # ALWAYS log authorization headers for debugging
+    @app.before_request
+    def _log_auth_header():
+        try:
+            auth = str(request.headers.get('Authorization'))
+            if auth and auth != 'None':
+                print(f"[AUTH] {request.method} {request.path}")
+                print(f"[AUTH] Authorization header: {auth[:80]}...")
+                print(f"[AUTH] JWT_SECRET_KEY configured: {'Yes' if app.config.get('JWT_SECRET_KEY') else 'No'}")
+        except Exception as e:
+            print(f"[AUTH] Error logging header: {e}")
     
     # Disable rate limiting and security headers for debugging
     # TODO: Re-enable after deployment is stable
@@ -107,7 +108,7 @@ def create_app(config_name=None):
     # JWT error handlers
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
-        print(f"⚠️ JWT Expired: header={jwt_header}, payload={jwt_payload}")
+        print(f"⚠️ JWT EXPIRED - Header: {jwt_header}, User ID: {jwt_payload.get('sub')}")
         return jsonify({
             'success': False,
             'message': 'Token has expired',
@@ -116,16 +117,18 @@ def create_app(config_name=None):
     
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
-        print(f"❌ JWT Invalid: {error}")
+        print(f"❌ JWT INVALID - Error: {error}")
+        print(f"❌ JWT_SECRET_KEY length: {len(app.config.get('JWT_SECRET_KEY', ''))}")
         return jsonify({
             'success': False,
             'message': f'Invalid token: {str(error)}',
-            'error': 'invalid_token'
+            'error': 'invalid_token',
+            'details': str(error)
         }), 401
     
     @jwt.unauthorized_loader
     def missing_token_callback(error):
-        print(f"⚠️ JWT Missing: {error}")
+        print(f"⚠️ JWT MISSING - Error: {error}, Path: {request.path}")
         return jsonify({
             'success': False,
             'message': 'Authorization token is missing',
@@ -134,7 +137,7 @@ def create_app(config_name=None):
     
     @jwt.revoked_token_loader
     def revoked_token_callback(jwt_header, jwt_payload):
-        print(f"⚠️ JWT Revoked: header={jwt_header}, payload={jwt_payload}")
+        print(f"⚠️ JWT REVOKED - Header: {jwt_header}, Payload: {jwt_payload}")
         return jsonify({
             'success': False,
             'message': 'Token has been revoked',
