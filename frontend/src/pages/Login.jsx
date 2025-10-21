@@ -101,7 +101,7 @@ const Login = () => {
         // Save tokens to localStorage as a backup and for ProtectedRoute checks
         if (at) {
           localStorage.setItem('accessToken', at);
-          console.log('✅ Access token saved to localStorage:', at.substring(0, 50) + '...');
+          console.log('✅ Access token saved to localStorage:', at.substring(0, Math.min(50, at.length)) + '...');
         }
         if (rt) {
           localStorage.setItem('refreshToken', rt);
@@ -116,15 +116,15 @@ const Login = () => {
         toast.success(`Welcome back, ${user?.name || 'user'}! 🎉`);
 
         // Log current localStorage for debugging
+        const savedToken = localStorage.getItem('accessToken');
         console.log('LocalStorage after login:', {
-          accessToken: localStorage.getItem('accessToken')?.substring(0, 50) + '...',
+          accessToken: savedToken ? savedToken.substring(0, Math.min(50, savedToken.length)) + '...' : 'missing',
           refreshToken: localStorage.getItem('refreshToken') ? 'present' : 'missing',
           authStorage: localStorage.getItem('auth-storage') ? 'present' : 'missing'
         });
         
         // Verify tokens are actually in storage
-        const verifyToken = localStorage.getItem('accessToken');
-        if (!verifyToken) {
+        if (!savedToken) {
           console.error('❌ CRITICAL: Token not found in localStorage immediately after saving!');
         } else {
           console.log('✅ Verified: Token exists in localStorage');
