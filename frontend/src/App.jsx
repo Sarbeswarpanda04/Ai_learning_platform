@@ -14,8 +14,7 @@ import LessonPage from './pages/LessonPage';
 import QuizPage from './pages/QuizPage';
 import ProgressPage from './pages/ProgressPage';
 import TeacherDashboard from './pages/TeacherDashboard';
-import CreateLesson from './pages/CreateLesson';
-import CreateLessonTeacher from './pages/teacher/CreateLesson';
+import CreateLesson from './pages/teacher/CreateLesson';
 
 // Components
 import Navbar from './components/Navbar';
@@ -161,7 +160,7 @@ function App() {
               path="/teacher/create-lesson"
               element={
                 <ProtectedRoute roles={['teacher', 'admin']}>
-                  <CreateLessonTeacher />
+                  <CreateLesson />
                 </ProtectedRoute>
               }
             />
