@@ -15,6 +15,7 @@ import QuizPage from './pages/QuizPage';
 import ProgressPage from './pages/ProgressPage';
 import TeacherDashboard from './pages/TeacherDashboard';
 import CreateLesson from './pages/CreateLesson';
+import CreateLessonTeacher from './pages/teacher/CreateLesson';
 
 // Components
 import Navbar from './components/Navbar';
@@ -158,6 +159,14 @@ function App() {
             />
             <Route
               path="/teacher/create-lesson"
+              element={
+                <ProtectedRoute roles={['teacher', 'admin']}>
+                  <CreateLessonTeacher />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-lesson"
               element={
                 <ProtectedRoute roles={['teacher', 'admin']}>
                   <CreateLesson />

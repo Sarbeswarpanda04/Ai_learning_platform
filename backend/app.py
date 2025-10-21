@@ -2,7 +2,7 @@
 Main Flask application for AI-Driven Personalized Learning Platform
 """
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
@@ -37,6 +37,17 @@ def create_app(config_name=None):
     
     # JWT
     jwt = JWTManager(app)
+
+    # Development-only request logger for Authorization header
+    if app.config.get('DEBUG'):
+        @app.before_request
+        def _log_auth_header():
+            try:
+                auth = str(request.headers.get('Authorization'))
+                if auth and auth != 'None':
+                    print(f"[DEBUG] Incoming Authorization header: {auth[:100]}")
+            except Exception:
+                pass
     
     # Disable rate limiting and security headers for debugging
     # TODO: Re-enable after deployment is stable

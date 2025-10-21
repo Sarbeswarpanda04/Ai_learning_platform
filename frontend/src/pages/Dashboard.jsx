@@ -57,19 +57,41 @@ const Dashboard = () => {
 
   // Check authentication
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    const storedUser = localStorage.getItem('user');
-    
-    // If no token and not authenticated, redirect
-    if (!accessToken && !isAuthenticated) {
-      console.log('Not authenticated, redirecting to login');
-      toast.error('Please login to access dashboard');
-      navigate('/login');
-      return;
-    }
-    
-    // Fetch dashboard data
-    fetchDashboardData();
+    const waitForToken = async (timeout = 1000) => {
+      const interval = 100;
+      const start = Date.now();
+      // If already have auth in store or localStorage, resolve immediately
+      if (isAuthenticated || localStorage.getItem('accessToken')) return true;
+      return new Promise((resolve) => {
+        const t = setInterval(() => {
+          if (isAuthenticated || localStorage.getItem('accessToken')) {
+            clearInterval(t);
+            resolve(true);
+          } else if (Date.now() - start > timeout) {
+            clearInterval(t);
+            resolve(false);
+          }
+        }, interval);
+      });
+    };
+
+    (async () => {
+      const accessToken = localStorage.getItem('accessToken');
+
+      // If no token and not authenticated, wait briefly for tokens to be written (race prevention)
+      if (!accessToken && !isAuthenticated) {
+        const ok = await waitForToken(1000);
+        if (!ok) {
+          console.log('Not authenticated after wait, redirecting to login');
+          toast.error('Please login to access dashboard');
+          navigate('/login');
+          return;
+        }
+      }
+
+      // Fetch dashboard data now that token is available or auth is set
+      fetchDashboardData();
+    })();
   }, []);
 
   const fetchDashboardData = async () => {

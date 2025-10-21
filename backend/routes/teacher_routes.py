@@ -1,10 +1,22 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
 from database import db
 from models import User, StudentProfile, Lesson
 from datetime import datetime
+import os
 
 teacher_routes = Blueprint('teacher', __name__)
+
+ALLOWED_EXTENSIONS = {'pdf', 'ppt', 'pptx', 'doc', 'docx', 'mp4', 'avi', 'mov', 'wmv'}
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+
+# Create upload folder if it doesn't exist
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @teacher_routes.route('/api/teacher/courses', methods=['GET'])
 @jwt_required()
@@ -76,7 +88,95 @@ def create_lesson():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@teacher_routes.route('/api/teacher/students', methods=['GET'])
+@teacher_routes.route('/api/teacher/lesson/upload', methods=['POST'])
+@jwt_required()
+def upload_lesson_file():
+    """Upload lesson file (document or video)"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user or user.role not in ['teacher', 'admin']:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        # Check if file is present in request
+        if 'file' not in request.files and 'video' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files.get('file') or request.files.get('video')
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            # Add timestamp to prevent conflicts
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{timestamp}_{filename}"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            
+            file.save(filepath)
+            
+            # Return file URL (in production, this would be a CDN URL)
+            file_url = f"/uploads/{filename}"
+            
+            return jsonify({
+                'success': True,
+                'message': 'File uploaded successfully',
+                'file_url': file_url,
+                'filename': filename
+            }), 200
+        else:
+            return jsonify({'error': 'Invalid file type'}), 400
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@teacher_routes.route('/api/ai/summary', methods=['POST'])
+@jwt_required()
+def generate_ai_summary():
+    """Generate AI summary for lesson content"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user or user.role not in ['teacher', 'admin']:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        data = request.get_json()
+        text = data.get('text', '')
+        
+        if not text:
+            return jsonify({'error': 'No text provided'}), 400
+        
+        # Simple extractive summary (first 3 sentences)
+        # In production, use NLP model or GPT API
+        sentences = text.split('.')[:3]
+        summary = '. '.join(s.strip() for s in sentences if s.strip()) + '.'
+        
+        # Add some intelligence to the summary
+        word_count = len(text.split())
+        estimated_time = max(1, word_count // 200)
+        
+        enhanced_summary = f"{summary}\n\n📚 Key Points:\n"
+        enhanced_summary += f"• Estimated reading time: {estimated_time} minutes\n"
+        enhanced_summary += f"• Content length: {word_count} words\n"
+        enhanced_summary += "• Recommended for: All levels"
+        
+        return jsonify({
+            'success': True,
+            'summary': enhanced_summary,
+            'metadata': {
+                'word_count': word_count,
+                'estimated_time': estimated_time,
+                'sentences': len(text.split('.'))
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@teacher_routes.route('/api/teacher/courses', methods=['GET'])
 @jwt_required()
 def get_enrolled_students():
     """Get all students (simplified - returns all students in the system)"""
