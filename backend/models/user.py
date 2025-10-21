@@ -65,7 +65,7 @@ class StudentProfile(db.Model):
     total_lessons_completed = db.Column(db.Integer, default=0)
     total_quizzes_taken = db.Column(db.Integer, default=0)
     average_score = db.Column(db.Float, default=0.0)
-    parent_pin = db.Column(db.String(6))  # 6-digit PIN for parent access
+    # parent_pin = db.Column(db.String(6))  # 6-digit PIN for parent access - TEMPORARILY COMMENTED
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

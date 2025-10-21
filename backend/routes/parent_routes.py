@@ -60,15 +60,17 @@ def parent_login():
         # Get student profile
         profile = StudentProfile.query.filter_by(user_id=student_id).first()
         
-        # Check if parent PIN is set
-        if not profile or not profile.parent_pin:
+        # Check if parent PIN feature is available and set
+        parent_pin_attr = getattr(profile, 'parent_pin', None) if profile else None
+        
+        if not profile or not parent_pin_attr:
             return jsonify({
                 'success': False,
-                'message': 'Parent PIN not set for this student'
+                'message': 'Parent PIN not set for this student. Please ask the student to set up a Parent PIN first.'
             }), 404
         
         # Verify parent PIN
-        if profile.parent_pin != parent_pin:
+        if parent_pin_attr != parent_pin:
             return jsonify({
                 'success': False,
                 'message': 'Invalid Parent PIN'
@@ -218,16 +220,23 @@ def set_parent_pin():
         # Get or create student profile
         profile = StudentProfile.query.filter_by(user_id=current_user_id).first()
         
+        # Check if parent_pin attribute exists in the model
+        if not hasattr(StudentProfile, 'parent_pin'):
+            return jsonify({
+                'success': False,
+                'message': 'Parent PIN feature is not yet available. Database migration pending.'
+            }), 503
+        
         if not profile:
             profile = StudentProfile(
                 user_id=current_user_id,
                 branch='Not Set',
-                semester=1,
-                parent_pin=parent_pin
+                semester=1
             )
             db.session.add(profile)
-        else:
-            profile.parent_pin = parent_pin
+        
+        # Set parent PIN
+        profile.parent_pin = parent_pin
         
         db.session.commit()
         
