@@ -18,14 +18,36 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
+    const authStorage = localStorage.getItem('auth-storage');
+    let storeToken = null;
+    
+    // Also try to get token from zustand store
+    if (authStorage) {
+      try {
+        const authData = JSON.parse(authStorage);
+        storeToken = authData.state?.accessToken;
+      } catch (e) {
+        console.error('Failed to parse auth-storage:', e);
+      }
+    }
+    
+    // Use whichever token is available
+    const finalToken = token || storeToken;
+    
     console.log('API Request Interceptor:', {
       url: config.url,
-      hasToken: !!token,
-      tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+      hasLocalStorageToken: !!token,
+      hasStoreToken: !!storeToken,
+      usingToken: !!finalToken,
+      tokenPreview: finalToken ? `${finalToken.substring(0, 30)}...` : 'none'
     });
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    
+    if (finalToken) {
+      config.headers.Authorization = `Bearer ${finalToken}`;
+    } else {
+      console.warn('⚠️ No token available for request:', config.url);
     }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -52,7 +74,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Don't handle 401 errors for the first 5 minutes after login to prevent race conditions
+    // Don't handle 401 errors for the first 10 minutes after login to prevent race conditions
     const authStorage = localStorage.getItem('auth-storage');
     if (authStorage) {
       try {
@@ -60,13 +82,13 @@ api.interceptors.response.use(
         const loginTime = authData.state?.loginTime;
         if (loginTime) {
           const timeSinceLogin = Date.now() - loginTime;
-          if (timeSinceLogin < 5 * 60 * 1000) { // 5 minutes
-            console.log('Recent login detected - skipping 401 auto-logout');
+          if (timeSinceLogin < 10 * 60 * 1000) { // 10 minutes
+            console.log(`Recent login detected (${Math.round(timeSinceLogin / 1000)}s ago) - skipping 401 auto-logout for ${originalRequest.url}`);
             return Promise.reject(error);
           }
         }
       } catch (e) {
-        // Ignore parsing errors
+        console.error('Error parsing auth storage:', e);
       }
     }
 
