@@ -106,15 +106,25 @@ def signup():
             'profile': data.get('profile', {})
         }
         
-        # Send OTP email
-        if send_otp_email(email, otp, name):
-            store_otp(email, otp)
+        # Store OTP
+        store_otp(email, otp)
+        
+        # Try to send OTP email
+        email_sent = send_otp_email(email, otp, name)
+        
+        if email_sent:
             return success_response({
                 'email': email,
                 'message': 'OTP sent to your email. Please verify to complete registration.'
             }, 'OTP sent successfully', 200)
         else:
-            return error_response('Failed to send OTP email. Please check your email address.', 500)
+            # SMTP not configured - log OTP for testing
+            print(f"⚠️  SMTP NOT CONFIGURED - OTP for {email}: {otp}")
+            return success_response({
+                'email': email,
+                'otp': otp,  # Include OTP in response for testing (REMOVE IN PRODUCTION!)
+                'message': 'OTP generated (SMTP not configured). Check server logs or use OTP from response.'
+            }, 'OTP generated - email not sent (configure SMTP)', 200)
         
     except Exception as e:
         return error_response(f'Registration failed: {str(e)}', 500)
