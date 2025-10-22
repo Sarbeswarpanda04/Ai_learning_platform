@@ -21,8 +21,9 @@ class Config:
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     
-    # Database Connection Pool Settings (only for PostgreSQL)
+    # Database Connection Pool Settings
     if DATABASE_URL and 'postgresql' in DATABASE_URL:
+        # PostgreSQL specific settings
         SQLALCHEMY_ENGINE_OPTIONS = {
             'pool_size': 10,
             'pool_recycle': 300,
@@ -32,6 +33,19 @@ class Config:
             'connect_args': {
                 'connect_timeout': 10,
                 'options': '-c statement_timeout=30000'
+            }
+        }
+    elif DATABASE_URL and 'mysql' in DATABASE_URL:
+        # MySQL specific settings
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_size': 10,
+            'pool_recycle': 3600,
+            'pool_pre_ping': True,
+            'max_overflow': 20,
+            'pool_timeout': 30,
+            'connect_args': {
+                'connect_timeout': 10,
+                'charset': 'utf8mb4'
             }
         }
     else:

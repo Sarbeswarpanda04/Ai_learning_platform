@@ -1,136 +1,143 @@
 """
-Initialize database with sample data for production
-Run this once after deploying to Render
+Initialize MySQL database with all tables and sample data
+Run this after configuring MySQL connection in .env
 """
-from app import app, db
-from models import User, Lesson, StudentProfile
-from werkzeug.security import generate_password_hash
-from datetime import datetime
+import os
+import sys
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+from app import create_app
+from database import db
+from models.user import User, StudentProfile
+from models.lesson import Lesson
+from models.quiz import Quiz
 
 def init_database():
+    """Initialize the MySQL database with all tables"""
+    
+    print("="*60)
+    print("  AI LEARNING PLATFORM - MySQL DATABASE SETUP")
+    print("="*60)
+    
+    # Create Flask app
+    app = create_app('development')
+    
     with app.app_context():
-        print("Creating database tables...")
-        db.create_all()
+        print("\n📋 Database Configuration:")
+        db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+        # Hide password in output
+        if '@' in db_uri:
+            safe_uri = db_uri.split('@')[0].split('://')[0] + '://****:****@' + db_uri.split('@')[1]
+            print(f"   Database URI: {safe_uri}")
+        else:
+            print(f"   Database URI: {db_uri}")
         
-        # Check if data already exists
-        if User.query.first():
-            print("Database already initialized!")
-            return
-        
-        print("Creating sample users...")
-        
-        # Create teacher
-        teacher = User(
-            username='teacher',
-            email='teacher@example.com',
-            password_hash=generate_password_hash('teacher123'),
-            full_name='Demo Teacher',
-            role='teacher'
-        )
-        
-        # Create students
-        student1 = User(
-            username='student1',
-            email='student1@example.com',
-            password_hash=generate_password_hash('student123'),
-            full_name='Alice Johnson',
-            role='student'
-        )
-        
-        student2 = User(
-            username='student2',
-            email='student2@example.com',
-            password_hash=generate_password_hash('student123'),
-            full_name='Bob Smith',
-            role='student'
-        )
-        
-        db.session.add_all([teacher, student1, student2])
-        db.session.commit()
-        
-        print("Creating student profiles...")
-        
-        profile1 = StudentProfile(
-            user_id=student1.id,
-            grade_level='10',
-            learning_style='visual',
-            interests=['Mathematics', 'Science']
-        )
-        
-        profile2 = StudentProfile(
-            user_id=student2.id,
-            grade_level='11',
-            learning_style='auditory',
-            interests=['History', 'Literature']
-        )
-        
-        db.session.add_all([profile1, profile2])
-        db.session.commit()
-        
-        print("Creating sample lessons...")
-        
-        lessons = [
-            Lesson(
-                title='Introduction to Python Programming',
-                subject='Computer Science',
-                content='Learn the basics of Python programming language including variables, data types, and control structures.',
-                difficulty='beginner',
-                duration_minutes=45,
-                teacher_id=teacher.id,
-                tags=['python', 'programming', 'basics'],
-                objectives=['Understand variables', 'Learn data types', 'Use control structures']
-            ),
-            Lesson(
-                title='Advanced Mathematics: Calculus',
-                subject='Mathematics',
-                content='Explore differential and integral calculus with real-world applications.',
-                difficulty='advanced',
-                duration_minutes=60,
-                teacher_id=teacher.id,
-                tags=['calculus', 'mathematics', 'advanced'],
-                objectives=['Master derivatives', 'Understand integrals', 'Apply to problems']
-            ),
-            Lesson(
-                title='World History: Ancient Civilizations',
-                subject='History',
-                content='Study the rise and fall of ancient civilizations including Egypt, Greece, and Rome.',
-                difficulty='intermediate',
-                duration_minutes=50,
-                teacher_id=teacher.id,
-                tags=['history', 'ancient', 'civilizations'],
-                objectives=['Learn about Egypt', 'Understand Greek culture', 'Study Roman empire']
-            ),
-            Lesson(
-                title='Chemistry Basics: The Periodic Table',
-                subject='Science',
-                content='Introduction to chemical elements and the periodic table organization.',
-                difficulty='beginner',
-                duration_minutes=40,
-                teacher_id=teacher.id,
-                tags=['chemistry', 'science', 'periodic-table'],
-                objectives=['Understand elements', 'Learn periodic table', 'Chemical properties']
-            ),
-            Lesson(
-                title='English Literature: Shakespeare',
-                subject='English',
-                content='Analysis of Shakespearean works including Romeo and Juliet, Hamlet, and Macbeth.',
-                difficulty='intermediate',
-                duration_minutes=55,
-                teacher_id=teacher.id,
-                tags=['literature', 'shakespeare', 'english'],
-                objectives=['Analyze themes', 'Understand characters', 'Literary techniques']
+        try:
+            # Test connection
+            print("\n🔍 Testing database connection...")
+            db.session.execute(db.text('SELECT 1'))
+            print("   ✅ Database connection successful")
+            
+            # Check if tables exist
+            inspector = db.inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+            
+            if existing_tables:
+                print(f"\n⚠️  Found {len(existing_tables)} existing tables")
+                response = input("   Drop all tables and recreate? (yes/no): ")
+                if response.lower() not in ['yes', 'y']:
+                    print("\n❌ Database initialization cancelled")
+                    return
+                
+                print("\n🗑️  Dropping existing tables...")
+                db.drop_all()
+                print("   ✅ All tables dropped")
+            
+            # Create all tables
+            print("\n📦 Creating tables from models...")
+            db.create_all()
+            print("   ✅ All tables created successfully")
+            
+            # List all created tables
+            print("\n📊 Created Tables:")
+            inspector = db.inspect(db.engine)
+            for table_name in inspector.get_table_names():
+                print(f"   - {table_name}")
+            
+            # Check if sample data exists
+            if User.query.first():
+                print("\n⚠️  Sample data already exists")
+                return
+            
+            # Create sample data
+            print("\n👤 Creating sample users...")
+            
+            # Create teacher account
+            teacher = User(
+                name='Demo Teacher',
+                email='teacher@demo.com',
+                role='teacher',
+                is_active=True,
+                email_verified=True
             )
-        ]
-        
-        db.session.add_all(lessons)
-        db.session.commit()
-        
-        print(f"✅ Database initialized successfully!")
-        print(f"Created {User.query.count()} users")
-        print(f"Created {Lesson.query.count()} lessons")
-        print(f"\nLogin credentials:")
-        print(f"Teacher: teacher@example.com / teacher123")
-        print(f"Student: student1@example.com / student123")
+            teacher.set_password('teacher123')
+            db.session.add(teacher)
+            
+            # Create student account
+            student = User(
+                name='Demo Student',
+                email='student@demo.com',
+                role='student',
+                is_active=True,
+                email_verified=True
+            )
+            student.set_password('student123')
+            db.session.add(student)
+            
+            db.session.commit()
+            print("   ✅ Sample users created")
+            
+            # Create student profile
+            print("\n📝 Creating student profile...")
+            profile = StudentProfile(
+                user_id=student.id,
+                branch='Computer Science',
+                semester=3,
+                baseline_score=75.0,
+                preferences={'learning_pace': 'medium', 'preferred_time': 'evening'},
+                achievements=[]
+            )
+            db.session.add(profile)
+            db.session.commit()
+            print("   ✅ Student profile created")
+            
+            print("\n" + "="*60)
+            print("  ✅ DATABASE INITIALIZATION COMPLETE!")
+            print("="*60)
+            print("\n📌 Login Credentials:")
+            print("   Teacher: teacher@demo.com / teacher123")
+            print("   Student: student@demo.com / student123")
+            print("\n📌 Next Steps:")
+            print("   1. Start Flask backend: python app.py")
+            print("   2. Access API at: http://localhost:5000")
+            print("   3. Login with credentials above")
+            print("\n")
+            
+        except Exception as e:
+            print(f"\n❌ Error during database initialization:")
+            print(f"   {str(e)}")
+            print("\n💡 Troubleshooting:")
+            print("   1. Ensure MySQL is running")
+            print("   2. Check DATABASE_URL in .env file")
+            print("   3. Verify MySQL credentials")
+            print("   4. Create database first: CREATE DATABASE ai_learning_db;")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
 
 if __name__ == '__main__':
+    print("\n🚀 Starting MySQL database initialization...\n")
     init_database()
